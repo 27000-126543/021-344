@@ -1,0 +1,107 @@
+@use '@/styles/variables.scss' as *;
+
+.photoUploader {
+  width: 100%;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-sm;
+}
+
+.title {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+}
+
+.count {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.photoGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}
+
+.photoItem {
+  position: relative;
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: $radius-sm;
+  overflow: hidden;
+
+  .photo {
+    width: 100%;
+    height: 100%;
+  }
+
+  .deleteBtn {
+    position: absolute;
+    top: 4rpx;
+    right: 4rpx;
+    width: 36rpx;
+    height: 36rpx;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 50%;
+    color: #fff;
+    font-size: $font-size-sm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  .photoInfo {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: $spacing-xs;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
+    color: #fff;
+    font-size: 20rpx;
+
+    .photoCategory {
+      @include text-ellipsis;
+    }
+
+    .photoTime {
+      @include text-ellipsis;
+      font-size: 18rpx;
+      opacity: 0.8;
+    }
+  }
+}
+
+.uploadBtn {
+  width: 200rpx;
+  height: 200rpx;
+  border: 2rpx dashed $color-border;
+  border-radius: $radius-sm;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: $color-bg-page;
+
+  .plusIcon {
+    font-size: 56rpx;
+    color: $color-text-tertiary;
+    line-height: 1;
+    margin-bottom: $spacing-xs;
+  }
+
+  .uploadText {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+  }
+
+  &:active {
+    opacity: 0.8;
+  }
+}

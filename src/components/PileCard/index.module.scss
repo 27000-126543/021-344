@@ -1,0 +1,100 @@
+@use '@/styles/variables.scss' as *;
+
+.pileCard {
+  background-color: $color-bg-card;
+  border-radius: $radius-md;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-md;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.99);
+    transition: all $transition-fast;
+  }
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.pileNo {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.pileInfo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-md $spacing-lg;
+  margin-bottom: $spacing-md;
+}
+
+.infoItem {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+
+  .label {
+    color: $color-text-tertiary;
+    margin-right: $spacing-xs;
+  }
+}
+
+.cardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: $spacing-md;
+  border-top: 1rpx solid $color-divider;
+}
+
+.projectName {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  @include text-ellipsis;
+  flex: 1;
+  margin-right: $spacing-md;
+}
+
+.stepIndicator {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.stepDot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: $radius-round;
+  background-color: $color-border;
+
+  &.active {
+    background-color: $color-primary;
+  }
+
+  &.done {
+    background-color: $color-success;
+  }
+}
+
+.stepText {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-left: $spacing-xs;
+}
+
+.rectificationBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rpx 12rpx;
+  background-color: $color-error-bg;
+  color: $color-error;
+  font-size: $font-size-xs;
+  border-radius: $radius-xs;
+  margin-left: $spacing-sm;
+}

@@ -1,0 +1,42 @@
+@use '@/styles/variables.scss' as *;
+
+.statusTag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rpx 16rpx;
+  border-radius: $radius-xs;
+  font-size: $font-size-xs;
+  line-height: 1.5;
+  white-space: nowrap;
+
+  &.pending {
+    color: $color-warning;
+    background-color: $color-warning-bg;
+  }
+
+  &.inProgress {
+    color: $color-primary;
+    background-color: $color-primary-bg;
+  }
+
+  &.completed {
+    color: $color-success;
+    background-color: $color-success-bg;
+  }
+
+  &.processing {
+    color: $color-warning;
+    background-color: $color-warning-bg;
+  }
+
+  &.rechecking {
+    color: $color-info;
+    background-color: $color-primary-bg;
+  }
+
+  &.closed {
+    color: $color-text-tertiary;
+    background-color: $color-bg-hover;
+  }
+}
