@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import Taro from '@tarojs/taro'
 import type {
   PileInfo,
   AcceptanceRecord,
@@ -12,6 +13,59 @@ import type {
 } from '@/types'
 import { mockPiles, mockAcceptanceRecords, mockRectifications, checkItemTemplates } from '@/data/mock'
 import { generateId } from '@/utils'
+
+const STORAGE_KEY = 'pile_acceptance_store_v1'
+
+interface PersistData {
+  piles: PileInfo[]
+  acceptanceRecords: AcceptanceRecord[]
+  rectifications: RectificationItem[]
+  _persistedAt: string
+}
+
+const loadFromStorage = (): PersistData | null => {
+  try {
+    const raw = Taro.getStorageSync(STORAGE_KEY)
+    if (raw) {
+      const data = JSON.parse(raw) as PersistData
+      console.log('[Store] 从本地存储加载数据:', data._persistedAt)
+      return data
+    }
+  } catch (e) {
+    console.warn('[Store] 读取本地存储失败:', e)
+  }
+  return null
+}
+
+const saveToStorage = (data: PersistData) => {
+  try {
+    const payload: PersistData = {
+      ...data,
+      _persistedAt: new Date().toISOString()
+    }
+    Taro.setStorageSync(STORAGE_KEY, JSON.stringify(payload))
+    console.log('[Store] 数据已保存到本地存储')
+  } catch (e) {
+    console.warn('[Store] 保存本地存储失败:', e)
+  }
+}
+
+const initPersisted = () => {
+  const stored = loadFromStorage()
+  if (stored && stored.piles && stored.piles.length > 0) {
+    return {
+      piles: stored.piles,
+      acceptanceRecords: stored.acceptanceRecords || [],
+      rectifications: stored.rectifications || []
+    }
+  }
+  console.log('[Store] 无有效本地数据，使用mock初始化')
+  return {
+    piles: [...mockPiles],
+    acceptanceRecords: [...mockAcceptanceRecords],
+    rectifications: [...mockRectifications]
+  }
+}
 
 interface AcceptanceStore {
   piles: PileInfo[]
@@ -54,12 +108,15 @@ interface AcceptanceStore {
   ) => void
 
   refreshPiles: () => void
+  clearStorage: () => void
 }
 
+const initial = initPersisted()
+
 export const useAcceptanceStore = create<AcceptanceStore>((set, get) => ({
-  piles: [...mockPiles],
-  acceptanceRecords: [...mockAcceptanceRecords],
-  rectifications: [...mockRectifications],
+  piles: initial.piles,
+  acceptanceRecords: initial.acceptanceRecords,
+  rectifications: initial.rectifications,
 
   getPileById: (id) => get().piles.find(p => p.id === id),
 
@@ -143,11 +200,12 @@ export const useAcceptanceStore = create<AcceptanceStore>((set, get) => ({
     }
 
     set({ piles: updatedPiles, acceptanceRecords: updatedRecords })
+    saveToStorage({ piles: updatedPiles, acceptanceRecords: updatedRecords, rectifications: get().rectifications, _persistedAt: '' })
     console.log('[Store] 步骤验收完成:', { pileId, step, isLastStep })
   },
 
   createRectification: (pileId, step, problemType, problemDesc, requirement) => {
-    const { piles, rectifications } = get()
+    const { piles, rectifications, acceptanceRecords } = get()
     const pile = piles.find(p => p.id === pileId)
     if (!pile) throw new Error('桩号不存在')
 
@@ -171,18 +229,20 @@ export const useAcceptanceStore = create<AcceptanceStore>((set, get) => ({
     const updatedPiles = piles.map(p =>
       p.id === pileId ? { ...p, hasRectification: true } : p
     )
+    const updatedRectifications = [newRect, ...rectifications]
 
     set({
       piles: updatedPiles,
-      rectifications: [newRect, ...rectifications]
+      rectifications: updatedRectifications
     })
+    saveToStorage({ piles: updatedPiles, acceptanceRecords, rectifications: updatedRectifications, _persistedAt: '' })
 
     console.log('[Store] 生成整改单:', newRect.id)
     return newRect
   },
 
   submitRecheck: (rectId, recheckDesc, recheckPhotos) => {
-    const { rectifications } = get()
+    const { rectifications, piles, acceptanceRecords } = get()
 
     const updated = rectifications.map(r => {
       if (r.id !== rectId) return r
@@ -196,11 +256,12 @@ export const useAcceptanceStore = create<AcceptanceStore>((set, get) => ({
     })
 
     set({ rectifications: updated })
+    saveToStorage({ piles, acceptanceRecords, rectifications: updated, _persistedAt: '' })
     console.log('[Store] 施工单位提交复查:', rectId)
   },
 
   reviewRectification: (rectId, action, comment) => {
-    const { rectifications } = get()
+    const { rectifications, piles: currentPiles, acceptanceRecords } = get()
 
     const updated = rectifications.map(r => {
       if (r.id !== rectId) return r
@@ -229,18 +290,19 @@ export const useAcceptanceStore = create<AcceptanceStore>((set, get) => ({
       r => r.pileId === updated.find(x => x.id === rectId)?.pileId && r.status !== 'closed'
     ).length
 
+    let finalPiles = currentPiles
     if (action === 'approve' && remaining === 0) {
       const rectPileId = updated.find(x => x.id === rectId)?.pileId
       if (rectPileId) {
-        const { piles } = get()
-        const updatedPiles = piles.map(p =>
+        finalPiles = currentPiles.map(p =>
           p.id === rectPileId ? { ...p, hasRectification: false } : p
         )
-        set({ piles: updatedPiles })
+        set({ piles: finalPiles })
       }
     }
 
     set({ rectifications: updated })
+    saveToStorage({ piles: finalPiles, acceptanceRecords, rectifications: updated, _persistedAt: '' })
     console.log('[Store] 监理复查:', { rectId, action, closedCount })
   },
 
@@ -248,5 +310,25 @@ export const useAcceptanceStore = create<AcceptanceStore>((set, get) => ({
     const { piles } = get()
     set({ piles: [...piles] })
     console.log('[Store] 刷新桩号列表')
+  },
+
+  clearStorage: () => {
+    try {
+      Taro.removeStorageSync(STORAGE_KEY)
+      console.log('[Store] 本地存储已清除')
+    } catch (e) {
+      console.warn('[Store] 清除本地存储失败:', e)
+    }
+    set({
+      piles: [...mockPiles],
+      acceptanceRecords: [...mockAcceptanceRecords],
+      rectifications: [...mockRectifications]
+    })
+    saveToStorage({
+      piles: [...mockPiles],
+      acceptanceRecords: [...mockAcceptanceRecords],
+      rectifications: [...mockRectifications],
+      _persistedAt: ''
+    })
   }
 }))

@@ -63,7 +63,7 @@ const AcceptanceDetailPage: React.FC = () => {
   const [rectRequirement, setRectRequirement] = useState('')
   const [currentProblemStep, setCurrentProblemStep] = useState<AcceptanceStep>('beforeDrilling')
 
-  const loadData = () => {
+  const loadData = (resetLocalEdits = true) => {
     const currentPile = getPileById(pileId)
     const currentRecord = getRecordByPileId(pileId)
 
@@ -93,9 +93,41 @@ const AcceptanceDetailPage: React.FC = () => {
       }
     })
 
-    setStepCheckItems(items)
-    setStepPhotos(photos)
-    setStepConclusions(conclusions)
+    if (resetLocalEdits) {
+      setStepCheckItems(items)
+      setStepPhotos(photos)
+      setStepConclusions(conclusions)
+    } else {
+      setStepCheckItems(prev => {
+        const merged = { ...prev }
+        steps.forEach(s => {
+          if (currentRecord?.steps[s.key]) {
+            merged[s.key] = [...(currentRecord.steps[s.key]?.checkItems || [])]
+          } else if (!prev[s.key] || prev[s.key].length === 0) {
+            merged[s.key] = initCheckItems(s.key)
+          }
+        })
+        return merged
+      })
+      setStepPhotos(prev => {
+        const merged = { ...prev }
+        steps.forEach(s => {
+          if (currentRecord?.steps[s.key]) {
+            merged[s.key] = [...(currentRecord.steps[s.key]?.photos || [])]
+          }
+        })
+        return merged
+      })
+      setStepConclusions(prev => {
+        const merged = { ...prev }
+        steps.forEach(s => {
+          if (currentRecord?.steps[s.key]) {
+            merged[s.key] = currentRecord.steps[s.key]?.conclusion || ''
+          }
+        })
+        return merged
+      })
+    }
 
     if (currentPile?.currentStep) {
       setExpandedStep(currentPile.currentStep)
@@ -106,16 +138,16 @@ const AcceptanceDetailPage: React.FC = () => {
     }
 
     setInitialized(true)
-    console.log('[AcceptanceDetail] 加载数据完成:', pileId, '状态:', currentPile?.status)
+    console.log('[AcceptanceDetail] 加载数据完成:', pileId, '状态:', currentPile?.status, 'resetLocalEdits:', resetLocalEdits)
   }
 
   useEffect(() => {
-    loadData()
+    loadData(true)
   }, [pileId])
 
   useDidShow(() => {
-    loadData()
-    console.log('[AcceptanceDetail] 页面显示，重新加载数据')
+    loadData(false)
+    console.log('[AcceptanceDetail] 页面显示，合并同步已提交数据')
   })
 
   const isStepCompleted = (stepKey: AcceptanceStep) => {
@@ -294,6 +326,7 @@ const AcceptanceDetailPage: React.FC = () => {
                 result={result}
                 checkItems={stepCheckItems[step.key]}
                 photos={stepPhotos[step.key]}
+                conclusion={stepConclusions[step.key]}
                 pileId={pileId}
                 photoCategory={step.photoCategory}
                 expanded={expandedStep === step.key}

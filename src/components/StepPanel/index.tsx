@@ -13,6 +13,7 @@ interface StepPanelProps {
   result: StepResult | null
   checkItems: CheckItem[]
   photos: PhotoItem[]
+  conclusion: string
   pileId: string
   photoCategory: string
   expanded?: boolean
@@ -30,6 +31,7 @@ const StepPanel: React.FC<StepPanelProps> = ({
   result,
   checkItems,
   photos,
+  conclusion,
   pileId,
   photoCategory,
   expanded: controlledExpanded,
@@ -124,7 +126,7 @@ const StepPanel: React.FC<StepPanelProps> = ({
               <Textarea
                 className={styles.conclusionInput}
                 placeholder='请填写检查结论...'
-                value={result?.conclusion || ''}
+                value={conclusion}
                 onInput={(e) => onConclusionChange?.(e.detail.value)}
                 maxlength={500}
               />

@@ -5,7 +5,7 @@ import styles from './index.module.scss'
 import { useAcceptanceStore } from '@/store'
 
 const MinePage: React.FC = () => {
-  const { piles, rectifications } = useAcceptanceStore()
+  const { piles, rectifications, clearStorage } = useAcceptanceStore()
 
   useDidShow(() => {
     console.log('[Mine] 页面显示，当前整改单数:', rectifications.length)
@@ -93,6 +93,28 @@ const MinePage: React.FC = () => {
           <Text className={styles.menuIcon}>ℹ️</Text>
           <Text className={styles.menuText}>关于</Text>
           <Text className={styles.menuValue}>v1.0.0</Text>
+          <Text className={styles.menuArrow}>›</Text>
+        </View>
+      </View>
+
+      <View className={styles.menuSection}>
+        <View
+          className={styles.menuItem}
+          onClick={() => {
+            Taro.showModal({
+              title: '重置数据',
+              content: '确定要清除所有本地数据，恢复初始模拟数据吗？此操作不可撤销。',
+              success: (res) => {
+                if (res.confirm) {
+                  clearStorage()
+                  Taro.showToast({ title: '已重置数据', icon: 'success' })
+                }
+              }
+            })
+          }}
+        >
+          <Text className={styles.menuIcon}>🔄</Text>
+          <Text className={styles.menuText}>重置测试数据</Text>
           <Text className={styles.menuArrow}>›</Text>
         </View>
       </View>
