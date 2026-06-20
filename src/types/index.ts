@@ -89,6 +89,7 @@ export interface RectificationItem {
   recheckPhotos: PhotoItem[]
   closeTime?: string
   closer?: string
+  rejectReason?: string
 }
 
 export type ProblemType =

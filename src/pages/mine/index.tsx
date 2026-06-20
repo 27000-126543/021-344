@@ -1,15 +1,21 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { View, Text } from '@tarojs/components'
-import Taro from '@tarojs/taro'
+import Taro, { useDidShow } from '@tarojs/taro'
 import styles from './index.module.scss'
-import { mockPiles, mockRectifications } from '@/data/mock'
+import { useAcceptanceStore } from '@/store'
 
 const MinePage: React.FC = () => {
-  const totalAccepted = mockPiles.filter(p => p.status === 'completed').length
-  const totalPiles = mockPiles.length
-  const pendingRect = mockRectifications.filter(
+  const { piles, rectifications } = useAcceptanceStore()
+
+  useDidShow(() => {
+    console.log('[Mine] 页面显示，当前整改单数:', rectifications.length)
+  })
+
+  const totalAccepted = useMemo(() => piles.filter(p => p.status === 'completed').length, [piles])
+  const totalPiles = useMemo(() => piles.length, [piles])
+  const pendingRect = useMemo(() => rectifications.filter(
     r => r.status === 'pending' || r.status === 'processing' || r.status === 'rechecking'
-  ).length
+  ).length, [rectifications])
 
   const handleMenuItem = (key: string) => {
     Taro.showToast({
@@ -39,7 +45,7 @@ const MinePage: React.FC = () => {
             <View className={styles.statLabel}>验收完成</View>
           </View>
           <View className={styles.statItem}>
-            <Text className={styles.statValue}>{mockRectifications.length}</Text>
+            <Text className={styles.statValue}>{rectifications.length}</Text>
             <View className={styles.statLabel}>整改记录</View>
           </View>
           <View className={styles.statItem}>

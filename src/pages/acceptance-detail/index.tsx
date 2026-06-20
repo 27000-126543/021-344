@@ -1,23 +1,18 @@
-import React, { useState, useEffect, useMemo } from 'react'
-import { View, Text, Input, Textarea, ScrollView } from '@tarojs/components'
-import Taro, { useRouter } from '@tarojs/taro'
+import React, { useState, useMemo, useEffect } from 'react'
+import { View, Text, Textarea, ScrollView } from '@tarojs/components'
+import Taro, { useRouter, useDidShow } from '@tarojs/taro'
 import classnames from 'classnames'
 import styles from './index.module.scss'
 import StepPanel from '@/components/StepPanel'
 import StatusTag from '@/components/StatusTag'
-import PhotoUploader from '@/components/PhotoUploader'
-import { mockPiles, mockAcceptanceRecords, checkItemTemplates } from '@/data/mock'
+import { useAcceptanceStore } from '@/store'
 import type {
-  PileInfo,
-  AcceptanceRecord,
   AcceptanceStep,
-  StepResult,
   CheckItem,
   PhotoItem,
   ProblemType
 } from '@/types'
 import { AcceptanceStatusMap, AcceptanceStepMap, ProblemTypeMap } from '@/types'
-import { generateId, formatTime } from '@/utils'
 
 const steps: Array<{ key: AcceptanceStep; label: string; photoCategory: string }> = [
   { key: 'beforeDrilling', label: '成孔前复核', photoCategory: '孔口标识' },
@@ -38,9 +33,13 @@ const AcceptanceDetailPage: React.FC = () => {
   const router = useRouter()
   const pileId = router.params.id || 'pile001'
 
-  const [pile, setPile] = useState<PileInfo | null>(null)
-  const [record, setRecord] = useState<AcceptanceRecord | null>(null)
+  const { piles, acceptanceRecords, getPileById, getRecordByPileId, initCheckItems, submitStepResult, createRectification } = useAcceptanceStore()
+
+  const pile = useMemo(() => getPileById(pileId), [getPileById, pileId, piles])
+  const record = useMemo(() => getRecordByPileId(pileId), [getRecordByPileId, pileId, acceptanceRecords])
+
   const [expandedStep, setExpandedStep] = useState<AcceptanceStep | null>(null)
+  const [initialized, setInitialized] = useState(false)
 
   const [stepCheckItems, setStepCheckItems] = useState<Record<AcceptanceStep, CheckItem[]>>({
     beforeDrilling: [],
@@ -64,23 +63,10 @@ const AcceptanceDetailPage: React.FC = () => {
   const [rectRequirement, setRectRequirement] = useState('')
   const [currentProblemStep, setCurrentProblemStep] = useState<AcceptanceStep>('beforeDrilling')
 
-  useEffect(() => {
-    const foundPile = mockPiles.find(p => p.id === pileId)
-    if (foundPile) {
-      setPile(foundPile)
-    }
+  const loadData = () => {
+    const currentPile = getPileById(pileId)
+    const currentRecord = getRecordByPileId(pileId)
 
-    const foundRecord = mockAcceptanceRecords.find(r => r.pileId === pileId)
-    if (foundRecord) {
-      setRecord(foundRecord)
-    }
-
-    initStepData(foundPile, foundRecord)
-
-    console.log('[AcceptanceDetail] 加载桩号:', pileId)
-  }, [pileId])
-
-  const initStepData = (pileInfo?: PileInfo | null, rec?: AcceptanceRecord | null) => {
     const items: Record<AcceptanceStep, CheckItem[]> = {
       beforeDrilling: [],
       reinforcementCage: [],
@@ -98,18 +84,12 @@ const AcceptanceDetailPage: React.FC = () => {
     }
 
     steps.forEach(s => {
-      if (rec?.steps[s.key]) {
-        items[s.key] = [...(rec.steps[s.key]?.checkItems || [])]
-        photos[s.key] = [...(rec.steps[s.key]?.photos || [])]
-        conclusions[s.key] = rec.steps[s.key]?.conclusion || ''
+      if (currentRecord?.steps[s.key]) {
+        items[s.key] = [...(currentRecord.steps[s.key]?.checkItems || [])]
+        photos[s.key] = [...(currentRecord.steps[s.key]?.photos || [])]
+        conclusions[s.key] = currentRecord.steps[s.key]?.conclusion || ''
       } else {
-        items[s.key] = checkItemTemplates[s.key].map(tpl => ({
-          id: generateId(),
-          key: tpl.key,
-          label: tpl.label,
-          step: tpl.step,
-          checked: false
-        }))
+        items[s.key] = initCheckItems(s.key)
       }
     })
 
@@ -117,19 +97,26 @@ const AcceptanceDetailPage: React.FC = () => {
     setStepPhotos(photos)
     setStepConclusions(conclusions)
 
-    if (pileInfo?.currentStep) {
-      setExpandedStep(pileInfo.currentStep)
-    } else if (pileInfo?.status === 'pending') {
+    if (currentPile?.currentStep) {
+      setExpandedStep(currentPile.currentStep)
+    } else if (currentPile?.status === 'pending') {
       setExpandedStep('beforeDrilling')
+    } else if (currentPile?.status === 'completed') {
+      setExpandedStep(null)
     }
+
+    setInitialized(true)
+    console.log('[AcceptanceDetail] 加载数据完成:', pileId, '状态:', currentPile?.status)
   }
 
-  const currentStepIndex = useMemo(() => {
-    if (!pile) return 0
-    if (pile.status === 'pending') return 0
-    if (pile.status === 'completed') return 2
-    return steps.findIndex(s => s.key === pile.currentStep)
-  }, [pile])
+  useEffect(() => {
+    loadData()
+  }, [pileId])
+
+  useDidShow(() => {
+    loadData()
+    console.log('[AcceptanceDetail] 页面显示，重新加载数据')
+  })
 
   const isStepCompleted = (stepKey: AcceptanceStep) => {
     return record?.steps[stepKey]?.checked ?? false
@@ -175,61 +162,28 @@ const AcceptanceDetailPage: React.FC = () => {
       return
     }
 
-    const stepResult: StepResult = {
-      step: stepKey,
-      checked: true,
-      checkItems: items,
-      photos: stepPhotos[stepKey],
-      conclusion: stepConclusions[stepKey],
-      inspector: '张监理',
-      checkTime: new Date().toISOString()
-    }
-
-    const newRecord: AcceptanceRecord = record
-      ? {
-          ...record,
-          steps: {
-            ...record.steps,
-            [stepKey]: stepResult
-          },
-          updateTime: new Date().toISOString()
-        }
-      : {
-          id: generateId(),
-          pileId: pileId,
-          pileNo: pile?.pileNo || '',
-          projectId: pile?.projectId || '',
-          steps: {
-            beforeDrilling: stepKey === 'beforeDrilling' ? stepResult : null,
-            reinforcementCage: stepKey === 'reinforcementCage' ? stepResult : null,
-            pouring: stepKey === 'pouring' ? stepResult : null
-          },
-          overallConclusion: '',
-          createTime: new Date().toISOString(),
-          updateTime: new Date().toISOString()
-        }
-
-    setRecord(newRecord)
+    submitStepResult(
+      pileId,
+      stepKey,
+      items,
+      stepPhotos[stepKey],
+      stepConclusions[stepKey]
+    )
 
     const stepIndex = steps.findIndex(s => s.key === stepKey)
     const isLastStep = stepIndex === steps.length - 1
 
     if (isLastStep) {
-      newRecord.overallConclusion = '验收合格'
-      setRecord({ ...newRecord })
-      if (pile) {
-        setPile({ ...pile, status: 'completed', currentStep: null })
-      }
+      setExpandedStep(null)
       Taro.showToast({ title: '验收全部完成', icon: 'success' })
-      console.log('[AcceptanceDetail] 全部验收完成')
     } else {
       const nextStep = steps[stepIndex + 1].key
       setExpandedStep(nextStep)
-      if (pile) {
-        setPile({ ...pile, status: 'inProgress', currentStep: nextStep })
-      }
+      setStepCheckItems(prev => ({
+        ...prev,
+        [nextStep]: initCheckItems(nextStep)
+      }))
       Taro.showToast({ title: `${AcceptanceStepMap[stepKey]}验收完成`, icon: 'success' })
-      console.log('[AcceptanceDetail] 步骤验收完成:', stepKey)
     }
   }
 
@@ -255,20 +209,23 @@ const AcceptanceDetailPage: React.FC = () => {
       return
     }
 
-    Taro.showToast({ title: '整改单已生成', icon: 'success' })
-    setShowProblemModal(false)
+    try {
+      const newRect = createRectification(
+        pileId,
+        currentProblemStep,
+        selectedProblemType,
+        problemDesc,
+        rectRequirement
+      )
 
-    if (pile) {
-      setPile({ ...pile, hasRectification: true })
+      Taro.showToast({ title: '整改单已生成', icon: 'success' })
+      setShowProblemModal(false)
+
+      console.log('[AcceptanceDetail] 生成整改单:', newRect.id, '问题类型:', selectedProblemType)
+    } catch (e) {
+      console.error('[AcceptanceDetail] 生成整改单失败:', e)
+      Taro.showToast({ title: '生成失败', icon: 'none' })
     }
-
-    console.log('[AcceptanceDetail] 生成整改单:', {
-      pileId,
-      step: currentProblemStep,
-      problemType: selectedProblemType,
-      problemDesc,
-      requirement: rectRequirement
-    })
   }
 
   const canSubmitCurrentStep = () => {
@@ -281,7 +238,7 @@ const AcceptanceDetailPage: React.FC = () => {
     return stepIndex <= currentIndex
   }
 
-  if (!pile) {
+  if (!pile || !initialized) {
     return (
       <View className={styles.page}>
         <Text>加载中...</Text>

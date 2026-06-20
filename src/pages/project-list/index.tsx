@@ -4,7 +4,7 @@ import Taro, { useDidShow, usePullDownRefresh } from '@tarojs/taro'
 import classnames from 'classnames'
 import styles from './index.module.scss'
 import PileCard from '@/components/PileCard'
-import { mockPiles } from '@/data/mock'
+import { useAcceptanceStore } from '@/store'
 import type { PileInfo, AcceptanceStatus } from '@/types'
 
 const filterOptions: Array<{ key: AcceptanceStatus | 'all'; label: string }> = [
@@ -15,28 +15,22 @@ const filterOptions: Array<{ key: AcceptanceStatus | 'all'; label: string }> = [
 ]
 
 const ProjectListPage: React.FC = () => {
-  const [piles, setPiles] = useState<PileInfo[]>(mockPiles)
+  const { piles, refreshPiles } = useAcceptanceStore()
+
   const [searchText, setSearchText] = useState('')
   const [activeFilter, setActiveFilter] = useState<AcceptanceStatus | 'all'>('all')
-  const [refreshing, setRefreshing] = useState(false)
 
   useDidShow(() => {
-    console.log('[ProjectList] 页面显示')
+    console.log('[ProjectList] 页面显示，当前桩号数:', piles.length)
   })
 
   usePullDownRefresh(() => {
-    handleRefresh()
-  })
-
-  const handleRefresh = () => {
-    setRefreshing(true)
+    refreshPiles()
     setTimeout(() => {
-      setPiles([...mockPiles])
-      setRefreshing(false)
       Taro.stopPullDownRefresh()
-      console.log('[ProjectList] 刷新完成')
-    }, 800)
-  }
+      Taro.showToast({ title: '刷新成功', icon: 'success' })
+    }, 500)
+  })
 
   const filteredPiles = useMemo(() => {
     let result = piles

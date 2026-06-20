@@ -3,8 +3,7 @@ export default defineAppConfig({
     'pages/project-list/index',
     'pages/rectification/index',
     'pages/mine/index',
-    'pages/acceptance-detail/index',
-    'pages/rectification-detail/index'
+    'pages/acceptance-detail/index'
   ],
   window: {
     backgroundTextStyle: 'light',
