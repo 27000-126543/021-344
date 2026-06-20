@@ -6,7 +6,7 @@ import styles from './index.module.scss'
 import PileCard from '@/components/PileCard'
 import PileTimeline from '@/components/PileTimeline'
 import { useAcceptanceStore } from '@/store'
-import type { PileInfo, AcceptanceStatus } from '@/types'
+import type { PileInfo, AcceptanceStatus, TimelineNode as StoreTimelineNode, AcceptanceStep } from '@/types'
 
 const filterOptions: Array<{ key: AcceptanceStatus | 'all'; label: string }> = [
   { key: 'all', label: '全部' },
@@ -16,7 +16,7 @@ const filterOptions: Array<{ key: AcceptanceStatus | 'all'; label: string }> = [
 ]
 
 const ProjectListPage: React.FC = () => {
-  const { piles, acceptanceRecords, rectifications, refreshPiles, getRecordByPileId, getRectificationsByPileId } = useAcceptanceStore()
+  const { piles, refreshPiles } = useAcceptanceStore()
 
   const [searchText, setSearchText] = useState('')
   const [activeFilter, setActiveFilter] = useState<AcceptanceStatus | 'all'>('all')
@@ -29,15 +29,29 @@ const ProjectListPage: React.FC = () => {
     return piles.find(p => p.id === timelinePileId) || null
   }, [timelinePileId, piles])
 
-  const timelineRecord = useMemo(() => {
-    if (!timelinePileId) return null
-    return getRecordByPileId(timelinePileId) || null
-  }, [timelinePileId, getRecordByPileId, acceptanceRecords])
+  const handleTimelineJump = (node: StoreTimelineNode) => {
+    if (!timelinePileId) return
+    setTimelineVisible(false)
 
-  const timelineRectifications = useMemo(() => {
-    if (!timelinePileId) return []
-    return getRectificationsByPileId(timelinePileId)
-  }, [timelinePileId, getRectificationsByPileId, rectifications])
+    const jumpParams: Record<string, string> = { id: timelinePileId }
+    if (node.step) {
+      jumpParams.step = node.step
+    }
+    if (node.type.startsWith('archive_')) {
+      jumpParams.tab = 'summary'
+      jumpParams.openArchive = '1'
+    }
+    if (node.type.startsWith('rect_')) {
+      jumpParams.tab = 'summary'
+      if (node.step) jumpParams.step = node.step
+    }
+
+    setTimeout(() => {
+      Taro.navigateTo({
+        url: `/pages/acceptance-detail/index?${Object.entries(jumpParams).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&')}`
+      })
+    }, 150)
+  }
 
   useDidShow(() => {
     console.log('[ProjectList] 页面显示，当前桩号数:', piles.length)
@@ -154,9 +168,8 @@ const ProjectListPage: React.FC = () => {
       <PileTimeline
         visible={timelineVisible}
         pile={timelinePile}
-        record={timelineRecord}
-        rectifications={timelineRectifications}
         onClose={() => setTimelineVisible(false)}
+        onJumpToDetail={handleTimelineJump}
       />
     </View>
   )

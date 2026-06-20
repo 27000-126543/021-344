@@ -92,6 +92,55 @@ export interface RectificationItem {
   rejectReason?: string
 }
 
+export type TimelineNodeType =
+  | 'create'
+  | 'step'
+  | 'rect_create'
+  | 'rect_recheck'
+  | 'rect_approve'
+  | 'rect_reject'
+  | 'photo_save'
+  | 'archive_generate'
+  | 'archive_confirm'
+  | 'complete'
+
+export interface TimelineNode {
+  id: string
+  type: TimelineNodeType
+  pileId: string
+  title: string
+  description?: string
+  time: string
+  step?: AcceptanceStep
+  rectId?: string
+  photoCount?: number
+  operator?: string
+}
+
+export interface ArchivePackage {
+  id: string
+  pileId: string
+  pileNo: string
+  projectId: string
+  projectName: string
+  steps: {
+    beforeDrilling: StepResult | null
+    reinforcementCage: StepResult | null
+    pouring: StepResult | null
+  }
+  rectifications: RectificationItem[]
+  overallConclusion: string
+  generateTime: string
+  confirmed: boolean
+  confirmTime?: string
+  confirmer?: string
+  totalPhotos: number
+  totalCheckItems: number
+  passedCheckItems: number
+  rectificationCount: number
+  closedRectificationCount: number
+}
+
 export type ProblemType =
   | 'holeDeviation'
   | 'cageLengthShort'

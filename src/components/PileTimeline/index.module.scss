@@ -15,7 +15,7 @@
 
 .modalContent {
   width: 100%;
-  max-height: 80vh;
+  max-height: 85vh;
   background-color: $color-bg-card;
   border-radius: $radius-lg $radius-lg 0 0;
   display: flex;
@@ -24,15 +24,23 @@
 
 .modalHeader {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  padding: $spacing-lg $page-spacing;
+  padding: $spacing-lg $page-padding;
   border-bottom: 1rpx solid $color-divider;
 
   .modalTitle {
     font-size: $font-size-lg;
     font-weight: $font-weight-bold;
     color: $color-text-primary;
+    display: block;
+  }
+
+  .subTitle {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+    margin-top: 6rpx;
+    display: block;
   }
 
   .closeBtn {
@@ -41,8 +49,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: $font-size-xxl;
+    font-size: 48rpx;
     color: $color-text-tertiary;
+    margin-top: -8rpx;
+    line-height: 1;
 
     &:active {
       opacity: 0.7;
@@ -51,7 +61,7 @@
 }
 
 .pileInfo {
-  padding: $spacing-md $page-spacing;
+  padding: $spacing-md $page-padding;
   background-color: $color-bg-page;
 
   .pileNo {
@@ -71,7 +81,7 @@
 
 .timelineScroll {
   flex: 1;
-  padding: $spacing-md $page-spacing;
+  padding: $spacing-md $page-padding;
   padding-bottom: calc(#{$spacing-lg} + env(safe-area-inset-bottom));
 }
 
@@ -82,6 +92,15 @@
 .timelineItem {
   display: flex;
   position: relative;
+  transition: all $transition-base;
+
+  &.clickable {
+    &:active {
+      background: rgba($color-primary, 0.04);
+      border-radius: $radius-sm;
+      transform: translateX(4rpx);
+    }
+  }
 
   &:last-child {
     .timelineLine {
@@ -91,7 +110,7 @@
 }
 
 .timelineLeft {
-  width: 48rpx;
+  width: 56rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -99,52 +118,67 @@
 }
 
 .timelineDot {
-  width: 48rpx;
-  height: 48rpx;
+  width: 56rpx;
+  height: 56rpx;
   border-radius: $radius-round;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: $color-primary-light;
   flex-shrink: 0;
   z-index: 1;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
 
   .dotIcon {
-    font-size: 24rpx;
+    font-size: 26rpx;
   }
 
-  &.create {
+  &.dot_create {
     background-color: $color-info-bg;
     .dotIcon { color: $color-info; }
   }
 
-  &.step {
+  &.dot_step {
     background-color: $color-success-bg;
-    .dotIcon { color: $color-success; font-size: 26rpx; font-weight: bold; }
+    .dotIcon { color: $color-success; font-size: 28rpx; font-weight: bold; }
   }
 
-  &.rect_create {
+  &.dot_photo_save {
+    background-color: rgba(88, 101, 242, 0.12);
+    .dotIcon { color: #5865F2; }
+  }
+
+  &.dot_rect_create {
     background-color: $color-warning-bg;
     .dotIcon { color: $color-warning; }
   }
 
-  &.rect_recheck {
+  &.dot_rect_recheck {
     background-color: $color-primary-bg;
     .dotIcon { color: $color-primary; }
   }
 
-  &.rect_approve {
+  &.dot_rect_approve {
     background-color: $color-success-bg;
     .dotIcon { color: $color-success; }
   }
 
-  &.rect_reject {
+  &.dot_rect_reject {
     background-color: $color-error-bg;
     .dotIcon { color: $color-error; }
   }
 
-  &.complete {
-    background-color: $color-primary;
+  &.dot_archive_generate {
+    background-color: rgba(139, 92, 246, 0.12);
+    .dotIcon { color: #8B5CF6; }
+  }
+
+  &.dot_archive_confirm {
+    background-color: rgba(16, 185, 129, 0.12);
+    .dotIcon { color: #10B981; }
+  }
+
+  &.dot_complete {
+    background: linear-gradient(135deg, $color-primary 0%, #3f8cff 100%);
     .dotIcon { color: $color-text-white; }
   }
 }
@@ -153,7 +187,7 @@
   width: 2rpx;
   flex: 1;
   min-height: 24rpx;
-  background-color: $color-divider;
+  background: linear-gradient(180deg, $color-divider 0%, rgba(0, 0, 0, 0.02) 100%);
   margin: 8rpx 0;
 }
 
@@ -168,6 +202,7 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: $spacing-xs;
+  gap: $spacing-sm;
 }
 
 .nodeTitle {
@@ -175,16 +210,57 @@
   font-weight: $font-weight-semibold;
   color: $color-text-primary;
   line-height: 1.4;
+  flex: 1;
 }
 
-.nodeStatus {
-  font-size: $font-size-xs;
-  color: $color-primary;
-  background-color: $color-primary-bg;
-  padding: 4rpx 16rpx;
-  border-radius: 20rpx;
+.nodeTypeTag {
+  padding: 4rpx 14rpx;
+  font-size: 20rpx;
+  border-radius: 16rpx;
   flex-shrink: 0;
-  margin-left: $spacing-sm;
+  background: $color-bg-page;
+  color: $color-text-secondary;
+
+  &.tag_create {
+    background: rgba($color-info, 0.08);
+    color: $color-info;
+  }
+  &.tag_step {
+    background: rgba($color-success, 0.08);
+    color: $color-success;
+  }
+  &.tag_photo_save {
+    background: rgba(88, 101, 242, 0.08);
+    color: #5865F2;
+  }
+  &.tag_rect_create {
+    background: rgba($color-warning, 0.08);
+    color: $color-warning;
+  }
+  &.tag_rect_recheck {
+    background: rgba($color-primary, 0.08);
+    color: $color-primary;
+  }
+  &.tag_rect_approve {
+    background: rgba($color-success, 0.08);
+    color: $color-success;
+  }
+  &.tag_rect_reject {
+    background: rgba($color-error, 0.08);
+    color: $color-error;
+  }
+  &.tag_archive_generate {
+    background: rgba(139, 92, 246, 0.1);
+    color: #8B5CF6;
+  }
+  &.tag_archive_confirm {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10B981;
+  }
+  &.tag_complete {
+    background: rgba($color-primary, 0.1);
+    color: $color-primary;
+  }
 }
 
 .nodeDesc {
@@ -194,9 +270,32 @@
   margin-bottom: $spacing-xs;
 }
 
+.nodeMetaRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}
+
 .nodeTime {
   font-size: $font-size-xs;
   color: $color-text-tertiary;
+}
+
+.nodeOperator {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.jumpHint {
+  font-size: $font-size-xs;
+  color: $color-primary;
+  margin-left: auto;
+  font-weight: $font-weight-medium;
+
+  .clickable & {
+    display: inline-block;
+  }
 }
 
 .emptyState {

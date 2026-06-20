@@ -87,13 +87,13 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
         <Text className={styles.count}>{photos.length}/{maxCount}</Text>
       </View>
       <View className={styles.photoGrid}>
-        {photos.map(photo => (
+        {photos.map((photo, idx) => (
           <View key={photo.id} className={styles.photoItem}>
             <Image
               className={styles.photo}
-              src={photo.url}
+              src={resolvedUrls[idx]}
               mode='aspectFill'
-              onClick={() => handlePreview(photo.url)}
+              onClick={() => handlePreview(idx)}
             />
             {!readonly && (
               <View className={styles.deleteBtn} onClick={() => handleDelete(photo.id)}>

@@ -434,3 +434,486 @@
     }
   }
 }
+
+.archiveActionBar {
+  display: flex;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.btn {
+  @include button-reset;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.85;
+    transform: scale(0.98);
+  }
+}
+
+.btnOutline {
+  border: 2rpx solid $color-primary;
+  color: $color-primary;
+  background-color: $color-bg-card;
+  border-radius: $radius-button;
+}
+
+.btnPrimary {
+  background: linear-gradient(135deg, $color-primary 0%, #3f8cff 100%);
+  color: $color-text-white;
+  border-radius: $radius-button;
+}
+
+.btnSuccess {
+  background: linear-gradient(135deg, $color-success 0%, #23c34a 100%);
+  color: $color-text-white;
+  border-radius: $radius-button;
+}
+
+.smallBtn {
+  flex: 1;
+  height: $button-height-md;
+  font-size: $font-size-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fullWidthBtn {
+  width: 100%;
+  height: $button-height-lg;
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.archiveStatusCard {
+  background: linear-gradient(135deg, #f0f5ff 0%, #e6f0ff 100%);
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+  border: 2rpx solid rgba($color-primary, 0.15);
+}
+
+.archiveStatusInfo {
+  margin-bottom: $spacing-sm;
+}
+
+.archiveStatusTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-primary;
+  display: block;
+  margin-bottom: 4rpx;
+}
+
+.archiveStatusMeta {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+}
+
+.archiveStatsMini {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.statMini {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: $radius-sm;
+  padding: $spacing-sm;
+  text-align: center;
+}
+
+.statMiniValue {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+  display: block;
+  line-height: 1.2;
+}
+
+.statMiniLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: 4rpx;
+  display: block;
+}
+
+.archiveModal {
+  width: 95%;
+  max-width: 702rpx;
+  padding: 0;
+  overflow: hidden;
+}
+
+.archiveModalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: $spacing-lg;
+  border-bottom: 1rpx solid $color-divider;
+}
+
+.archiveProjectName {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-top: 8rpx;
+  display: block;
+}
+
+.closeBtn {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48rpx;
+  color: $color-text-tertiary;
+  line-height: 1;
+  margin-top: -8rpx;
+
+  &:active {
+    opacity: 0.6;
+  }
+}
+
+.archiveModalFooter {
+  padding: $spacing-md $spacing-lg;
+  padding-bottom: calc(#{$spacing-lg} + env(safe-area-inset-bottom));
+  border-top: 1rpx solid $color-divider;
+  background: $color-bg-card;
+}
+
+.archiveAlreadyConfirmed {
+  width: 100%;
+  height: $button-height-lg;
+  font-size: $font-size-sm;
+  color: $color-success;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba($color-success, 0.08);
+  border-radius: $radius-button;
+  border: 2rpx solid rgba($color-success, 0.2);
+}
+
+.archiveOverview {
+  padding: $spacing-md $spacing-lg;
+  border-bottom: 1rpx solid $color-divider;
+  background: linear-gradient(180deg, #fafbff 0%, $color-bg-card 100%);
+}
+
+.archiveOverviewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+}
+
+.archiveBlockTitle {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.archiveBadge {
+  padding: 8rpx 20rpx;
+  font-size: $font-size-xs;
+  border-radius: 24rpx;
+
+  &.confirmed {
+    background: rgba($color-success, 0.1);
+    color: $color-success;
+  }
+
+  &.pendingConfirm {
+    background: rgba($color-warning, 0.1);
+    color: $color-warning;
+  }
+}
+
+.archiveOverviewGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.overviewItem {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: $radius-sm;
+  padding: $spacing-md;
+  text-align: center;
+  border: 1rpx solid $color-divider;
+}
+
+.overviewValue {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+  display: block;
+  line-height: 1.2;
+}
+
+.overviewLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: 4rpx;
+  display: block;
+}
+
+.archiveConclusionRow {
+  display: flex;
+  align-items: center;
+  padding-top: $spacing-sm;
+  border-top: 1rpx dashed $color-divider;
+
+  .label {
+    font-size: $font-size-sm;
+    color: $color-text-tertiary;
+    flex-shrink: 0;
+  }
+}
+
+.conclusionHighlight {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-success;
+}
+
+.label {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.archiveStepBlock {
+  padding: $spacing-md $spacing-lg;
+  border-bottom: 16rpx solid $color-bg-page;
+}
+
+.archiveStepHeader {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.archiveStepIndex {
+  font-size: $font-size-xs;
+  padding: 6rpx 16rpx;
+  background: rgba($color-primary, 0.1);
+  color: $color-primary;
+  border-radius: 16rpx;
+  flex-shrink: 0;
+}
+
+.archiveStepTitle {
+  flex: 1;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.stepResultBadge {
+  padding: 6rpx 16rpx;
+  font-size: $font-size-xs;
+  border-radius: 16rpx;
+  flex-shrink: 0;
+
+  &.passBadge {
+    background: rgba($color-success, 0.1);
+    color: $color-success;
+  }
+
+  &.missingBadge {
+    background: $color-bg-page;
+    color: $color-text-tertiary;
+  }
+}
+
+.archiveBlock {
+  margin-bottom: $spacing-md;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  .archiveBlockTitle {
+    margin-bottom: $spacing-sm;
+  }
+}
+
+.checkItemsCompact {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.checkItemCompact {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-md;
+  background: $color-bg-page;
+  border-radius: $radius-sm;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+
+  &.checked {
+    background: rgba($color-success, 0.06);
+    color: $color-text-primary;
+  }
+}
+
+.checkCompactIcon {
+  width: 32rpx;
+  height: 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $font-size-xs;
+  border-radius: 50%;
+  flex-shrink: 0;
+
+  .checked & {
+    background: $color-success;
+    color: $color-text-white;
+  }
+}
+
+.conclusionBox {
+  padding: $spacing-md;
+  background: $color-bg-page;
+  border-radius: $radius-sm;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  line-height: 1.6;
+}
+
+.archiveMetaRow {
+  display: flex;
+  justify-content: space-between;
+  margin-top: $spacing-sm;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.archivePhotoGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: $spacing-sm;
+}
+
+.archivePhotoItem {
+  position: relative;
+  width: 100%;
+  height: 140rpx;
+  border-radius: $radius-sm;
+  overflow: hidden;
+  background: $color-bg-page;
+
+  &:active {
+    opacity: 0.85;
+  }
+}
+
+.archivePhotoTime {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 4rpx 8rpx;
+  font-size: 18rpx;
+  color: $color-text-white;
+  background: rgba(0, 0, 0, 0.5);
+  text-align: center;
+}
+
+.archiveMissing {
+  padding: $spacing-lg 0;
+  text-align: center;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  background: $color-bg-page;
+  border-radius: $radius-sm;
+}
+
+.rectArchiveCard {
+  background: $color-bg-page;
+  border-radius: $radius-sm;
+  padding: $spacing-md;
+  margin-bottom: $spacing-sm;
+  border-left: 6rpx solid $color-warning;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.rectArchiveHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.rectArchiveType {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-warning;
+}
+
+.rectArchiveStatus {
+  padding: 4rpx 14rpx;
+  font-size: $font-size-xs;
+  border-radius: 16rpx;
+  background: rgba($color-text-tertiary, 0.1);
+  color: $color-text-secondary;
+
+  &.closed {
+    background: rgba($color-success, 0.1);
+    color: $color-success;
+  }
+
+  &.rechecking {
+    background: rgba($color-primary, 0.1);
+    color: $color-primary;
+  }
+
+  &.processing {
+    background: rgba($color-warning, 0.1);
+    color: $color-warning;
+  }
+}
+
+.rectArchiveDesc {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  margin-bottom: $spacing-xs;
+  line-height: 1.5;
+}
+
+.rectArchiveRow {
+  display: flex;
+  margin-bottom: 6rpx;
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  line-height: 1.5;
+
+  .label {
+    flex-shrink: 0;
+  }
+}
+
+.rectArchiveMeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: $spacing-xs;
+  padding-top: $spacing-xs;
+  border-top: 1rpx dashed rgba($color-divider, 0.8);
+}

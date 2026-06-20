@@ -10,9 +10,12 @@ import type {
   AcceptanceStep,
   CheckItem,
   PhotoItem,
-  ProblemType
+  ProblemType,
+  ArchivePackage,
+  StepResult,
+  RectificationItem
 } from '@/types'
-import { AcceptanceStatusMap, AcceptanceStepMap, ProblemTypeMap } from '@/types'
+import { AcceptanceStatusMap, AcceptanceStepMap, ProblemTypeMap, RectificationStatusMap } from '@/types'
 import { resolvePhotoUrl, formatTime } from '@/utils'
 
 const steps: Array<{ key: AcceptanceStep; label: string; photoCategory: string }> = [
@@ -34,13 +37,30 @@ const AcceptanceDetailPage: React.FC = () => {
   const router = useRouter()
   const pileId = router.params.id || 'pile001'
 
-  const { piles, acceptanceRecords, rectifications, getPileById, getRecordByPileId, getRectificationsByPileId, initCheckItems, submitStepResult, createRectification } = useAcceptanceStore()
+  const {
+    piles,
+    acceptanceRecords,
+    rectifications,
+    archivePackages,
+    getPileById,
+    getRecordByPileId,
+    getRectificationsByPileId,
+    getArchivePackageByPileId,
+    initCheckItems,
+    submitStepResult,
+    createRectification,
+    generateArchivePackage,
+    confirmArchivePackage
+  } = useAcceptanceStore()
 
   const pile = useMemo(() => getPileById(pileId), [getPileById, pileId, piles])
   const record = useMemo(() => getRecordByPileId(pileId), [getRecordByPileId, pileId, acceptanceRecords])
   const pileRectifications = useMemo(() => getRectificationsByPileId(pileId), [getRectificationsByPileId, pileId, rectifications])
+  const existingPkg = useMemo(() => getArchivePackageByPileId(pileId), [getArchivePackageByPileId, pileId, archivePackages])
 
   const [activeTab, setActiveTab] = useState<'acceptance' | 'summary'>('acceptance')
+  const [showArchiveModal, setShowArchiveModal] = useState(false)
+  const [currentPkg, setCurrentPkg] = useState<ArchivePackage | null>(null)
   const [expandedStep, setExpandedStep] = useState<AcceptanceStep | null>(null)
   const [initialized, setInitialized] = useState(false)
 
@@ -146,6 +166,23 @@ const AcceptanceDetailPage: React.FC = () => {
 
   useEffect(() => {
     loadData(true)
+
+    const tabParam = router.params.tab
+    if (tabParam === 'summary') {
+      setActiveTab('summary')
+    }
+
+    const stepParam = router.params.step as AcceptanceStep
+    if (stepParam) {
+      setExpandedStep(stepParam)
+    }
+
+    const openArchive = router.params.openArchive
+    if (openArchive === '1') {
+      setTimeout(() => {
+        handlePreviewArchive()
+      }, 300)
+    }
   }, [pileId])
 
   useDidShow(() => {
@@ -263,6 +300,43 @@ const AcceptanceDetailPage: React.FC = () => {
     }
   }
 
+  const handleGenerateArchive = () => {
+    try {
+      const pkg = generateArchivePackage(pileId)
+      setCurrentPkg(pkg)
+      setShowArchiveModal(true)
+      Taro.showToast({ title: '资料包已生成', icon: 'success' })
+      console.log('[AcceptanceDetail] 生成资料包:', pkg.id)
+    } catch (e) {
+      console.error('[AcceptanceDetail] 生成资料包失败:', e)
+      Taro.showToast({ title: '生成失败', icon: 'none' })
+    }
+  }
+
+  const handlePreviewArchive = () => {
+    if (existingPkg) {
+      setCurrentPkg(existingPkg)
+      setShowArchiveModal(true)
+    } else {
+      handleGenerateArchive()
+    }
+  }
+
+  const handleConfirmArchive = () => {
+    if (!currentPkg) return
+    Taro.showModal({
+      title: '确认归档',
+      content: '确认后将标记该桩号资料已归档，归档后可在流转记录中查看',
+      success: (res) => {
+        if (res.confirm) {
+          confirmArchivePackage(currentPkg.id)
+          setCurrentPkg({ ...currentPkg, confirmed: true, confirmTime: new Date().toISOString(), confirmer: '张监理' })
+          Taro.showToast({ title: '已确认归档', icon: 'success' })
+        }
+      }
+    })
+  }
+
   const canSubmitCurrentStep = () => {
     if (!expandedStep || !pile) return false
     if (isStepCompleted(expandedStep)) return false
@@ -364,6 +438,49 @@ const AcceptanceDetailPage: React.FC = () => {
 
         {activeTab === 'summary' && (
           <View className={styles.summarySection}>
+            <View className={styles.archiveActionBar}>
+              <View
+                className={classnames(styles.btn, styles.btnOutline, styles.smallBtn)}
+                onClick={handleGenerateArchive}
+              >
+                {existingPkg ? '重新生成资料包' : '一键生成资料包'}
+              </View>
+              <View
+                className={classnames(styles.btn, styles.btnPrimary, styles.smallBtn)}
+                onClick={handlePreviewArchive}
+              >
+                {existingPkg?.confirmed ? '查看归档资料' : '预览资料包'}
+              </View>
+            </View>
+
+            {existingPkg && (
+              <View className={styles.archiveStatusCard}>
+                <View className={styles.archiveStatusInfo}>
+                  <Text className={styles.archiveStatusTitle}>
+                    {existingPkg.confirmed ? '✅ 已完成归档' : '📦 资料包已生成'}
+                  </Text>
+                  <Text className={styles.archiveStatusMeta}>
+                    生成时间：{formatTime(existingPkg.generateTime)}
+                    {existingPkg.confirmed && existingPkg.confirmTime && ` · 归档：${formatTime(existingPkg.confirmTime)}`}
+                  </Text>
+                </View>
+                <View className={styles.archiveStatsMini}>
+                  <View className={styles.statMini}>
+                    <Text className={styles.statMiniValue}>{existingPkg.passedCheckItems}/{existingPkg.totalCheckItems}</Text>
+                    <Text className={styles.statMiniLabel}>检查项</Text>
+                  </View>
+                  <View className={styles.statMini}>
+                    <Text className={styles.statMiniValue}>{existingPkg.totalPhotos}</Text>
+                    <Text className={styles.statMiniLabel}>张照片</Text>
+                  </View>
+                  <View className={styles.statMini}>
+                    <Text className={styles.statMiniValue}>{existingPkg.closedRectificationCount}/{existingPkg.rectificationCount}</Text>
+                    <Text className={styles.statMiniLabel}>整改</Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
             {steps.map((step, index) => {
               const result = record?.steps[step.key] || null
               const isCompleted = result?.checked ?? false
@@ -576,6 +693,194 @@ const AcceptanceDetailPage: React.FC = () => {
           </View>
         </View>
       )}
+
+      {showArchiveModal && currentPkg && (
+        <View className={styles.modalMask} onClick={() => setShowArchiveModal(false)}>
+          <View className={classnames(styles.modalContent, styles.archiveModal)} onClick={(e) => e.stopPropagation()}>
+            <View className={styles.archiveModalHeader}>
+              <View>
+                <Text className={styles.modalTitle}>验收资料包 · {currentPkg.pileNo}</Text>
+                <Text className={styles.archiveProjectName}>{currentPkg.projectName}</Text>
+              </View>
+              <View className={styles.closeBtn} onClick={() => setShowArchiveModal(false)}>×</View>
+            </View>
+
+            <ScrollView scrollY style={{ maxHeight: '65vh' }}>
+              <View className={styles.archiveOverview}>
+                <View className={styles.archiveOverviewHeader}>
+                  <Text className={styles.archiveBlockTitle}>资料总览</Text>
+                  <View className={classnames(
+                    styles.archiveBadge,
+                    currentPkg.confirmed ? styles.confirmed : styles.pendingConfirm
+                  )}>
+                    {currentPkg.confirmed ? '已归档' : '待确认'}
+                  </View>
+                </View>
+                <View className={styles.archiveOverviewGrid}>
+                  <View className={styles.overviewItem}>
+                    <Text className={styles.overviewValue}>{currentPkg.passedCheckItems}/{currentPkg.totalCheckItems}</Text>
+                    <Text className={styles.overviewLabel}>检查项通过率</Text>
+                  </View>
+                  <View className={styles.overviewItem}>
+                    <Text className={styles.overviewValue}>{currentPkg.totalPhotos}</Text>
+                    <Text className={styles.overviewLabel}>留存照片（张）</Text>
+                  </View>
+                  <View className={styles.overviewItem}>
+                    <Text className={styles.overviewValue}>{currentPkg.rectificationCount}</Text>
+                    <Text className={styles.overviewLabel}>整改单（条）</Text>
+                  </View>
+                  <View className={styles.overviewItem}>
+                    <Text className={styles.overviewValue}>{currentPkg.closedRectificationCount}/{currentPkg.rectificationCount}</Text>
+                    <Text className={styles.overviewLabel}>整改闭环</Text>
+                  </View>
+                </View>
+                <View className={styles.archiveConclusionRow}>
+                  <Text className={styles.label}>总体结论：</Text>
+                  <Text className={styles.conclusionHighlight}>{currentPkg.overallConclusion || '验收进行中'}</Text>
+                </View>
+              </View>
+
+              {steps.map((stepConfig, sIdx) => {
+                const sr: StepResult | null = currentPkg.steps[stepConfig.key]
+                const rects = currentPkg.rectifications.filter(r => r.step === stepConfig.key)
+                const allPhotos = sr?.photos || []
+
+                return (
+                  <View key={stepConfig.key} className={styles.archiveStepBlock}>
+                    <View className={styles.archiveStepHeader}>
+                      <Text className={styles.archiveStepIndex}>第{sIdx + 1}环节</Text>
+                      <Text className={styles.archiveStepTitle}>{stepConfig.label}</Text>
+                      <View className={classnames(
+                        styles.stepResultBadge,
+                        sr?.checked ? styles.passBadge : styles.missingBadge
+                      )}>
+                        {sr?.checked ? '已完成' : '未完成'}
+                      </View>
+                    </View>
+
+                    {sr?.checked ? (
+                      <>
+                        <View className={styles.archiveBlock}>
+                          <Text className={styles.archiveBlockTitle}>检查项（{sr.checkItems.filter(i => i.checked).length}/{sr.checkItems.length}）</Text>
+                          <View className={styles.checkItemsCompact}>
+                            {sr.checkItems.map(item => (
+                              <View key={item.id} className={classnames(styles.checkItemCompact, item.checked && styles.checked)}>
+                                <Text className={styles.checkCompactIcon}>{item.checked ? '✓' : '✗'}</Text>
+                                <Text>{item.label}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+
+                        <View className={styles.archiveBlock}>
+                          <Text className={styles.archiveBlockTitle}>检查结论</Text>
+                          <View className={styles.conclusionBox}>{sr.conclusion || '无'}</View>
+                          <View className={styles.archiveMetaRow}>
+                            <Text>监理：{sr.inspector}</Text>
+                            <Text>{formatTime(sr.checkTime)}</Text>
+                          </View>
+                        </View>
+
+                        {allPhotos.length > 0 && (
+                          <View className={styles.archiveBlock}>
+                            <Text className={styles.archiveBlockTitle}>现场照片（{allPhotos.length}张）</Text>
+                            <View className={styles.archivePhotoGrid}>
+                              {allPhotos.map(photo => (
+                                <View
+                                  key={photo.id}
+                                  className={styles.archivePhotoItem}
+                                  onClick={() => {
+                                    Taro.previewImage({
+                                      current: resolvePhotoUrl(photo.url),
+                                      urls: allPhotos.map(p => resolvePhotoUrl(p.url))
+                                    })
+                                  }}
+                                >
+                                  <Image
+                                    src={resolvePhotoUrl(photo.url)}
+                                    mode='aspectFill'
+                                    style={{ width: '100%', height: '100%' }}
+                                  />
+                                  <View className={styles.archivePhotoTime}>
+                                    {formatTime(photo.shootTime, 'HH:mm')}
+                                  </View>
+                                </View>
+                              ))}
+                            </View>
+                          </View>
+                        )}
+
+                        {rects.length > 0 && (
+                          <View className={styles.archiveBlock}>
+                            <Text className={styles.archiveBlockTitle}>整改记录（{rects.length}条）</Text>
+                            {rects.map(rect => (
+                              <RectCardInArchive key={rect.id} rect={rect} />
+                            ))}
+                          </View>
+                        )}
+                      </>
+                    ) : (
+                      <View className={styles.archiveMissing}>本环节尚未完成验收</View>
+                    )}
+                  </View>
+                )
+              })}
+
+              <View style={{ height: '32rpx' }} />
+            </ScrollView>
+
+            <View className={styles.archiveModalFooter}>
+              {!currentPkg.confirmed ? (
+                <View
+                  className={classnames(styles.btn, styles.btnSuccess, styles.fullWidthBtn)}
+                  onClick={handleConfirmArchive}
+                >
+                  确认归档
+                </View>
+              ) : (
+                <View className={styles.archiveAlreadyConfirmed}>
+                  ✅ 已由 {currentPkg.confirmer} 于 {currentPkg.confirmTime && formatTime(currentPkg.confirmTime)} 完成归档
+                </View>
+              )}
+            </View>
+          </View>
+        </View>
+      )}
+    </View>
+  )
+}
+
+const RectCardInArchive: React.FC<{ rect: RectificationItem }> = ({ rect }) => {
+  return (
+    <View className={styles.rectArchiveCard}>
+      <View className={styles.rectArchiveHeader}>
+        <Text className={styles.rectArchiveType}>
+          {ProblemTypeMap[rect.problemType as ProblemType] || rect.problemType}
+        </Text>
+        <View className={classnames(
+          styles.rectArchiveStatus,
+          rect.status === 'closed' && styles.closed,
+          rect.status === 'rechecking' && styles.rechecking,
+          rect.status === 'processing' && styles.processing
+        )}>
+          {RectificationStatusMap[rect.status]}
+        </View>
+      </View>
+      <View className={styles.rectArchiveDesc}>{rect.problemDesc}</View>
+      <View className={styles.rectArchiveRow}>
+        <Text className={styles.label}>整改要求：</Text>
+        <Text>{rect.requirement}</Text>
+      </View>
+      {rect.recheckDesc && (
+        <View className={styles.rectArchiveRow}>
+          <Text className={styles.label}>复查说明：</Text>
+          <Text>{rect.recheckDesc}</Text>
+        </View>
+      )}
+      <View className={styles.rectArchiveMeta}>
+        <Text>期限：{formatTime(rect.deadline, 'MM-DD HH:mm')}</Text>
+        {rect.closeTime && <Text>关闭：{formatTime(rect.closeTime, 'MM-DD HH:mm')}</Text>}
+      </View>
     </View>
   )
 }

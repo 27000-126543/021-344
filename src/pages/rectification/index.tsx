@@ -71,18 +71,23 @@ const RectificationPage: React.FC = () => {
     return deadlineTime >= now && deadlineTime - now <= ONE_DAY
   }
 
+  const scopedRectifications = useMemo(() => {
+    if (activeProject === 'all') return rectifications
+    return rectifications.filter(r => r.projectName === activeProject)
+  }, [rectifications, activeProject])
+
   const timeStats = useMemo(() => {
     let overdue = 0
     let expiring = 0
     let rechecking = 0
-    rectifications.forEach(r => {
+    scopedRectifications.forEach(r => {
       if (r.status === 'closed') return
       if (r.status === 'rechecking') rechecking++
       if (isOverdue(r)) overdue++
       else if (isExpiring(r)) expiring++
     })
     return { overdue, expiring, rechecking }
-  }, [rectifications])
+  }, [scopedRectifications])
 
   const filteredList = useMemo(() => {
     let result = rectifications
@@ -493,16 +498,19 @@ const RectificationPage: React.FC = () => {
                               整改照片（{item.recheckPhotos.length}张）
                             </Text>
                             <View className={styles.photoGrid}>
-                              {item.recheckPhotos.map(photo => (
-                                <View key={photo.id} className={styles.photoItem}>
-                                  <Image
-                                    className={styles.photo}
-                                    src={photo.url}
-                                    mode='aspectFill'
-                                    onClick={() => handlePhotoPreview(photo.url, item.recheckPhotos.map(p => p.url))}
-                                  />
-                                </View>
-                              ))}
+                              {item.recheckPhotos.map((photo, idx) => {
+                                const allUrls = item.recheckPhotos.map(p => resolvePhotoUrl(p.url))
+                                return (
+                                  <View key={photo.id} className={styles.photoItem}>
+                                    <Image
+                                      className={styles.photo}
+                                      src={resolvePhotoUrl(photo.url)}
+                                      mode='aspectFill'
+                                      onClick={() => handlePhotoPreview(allUrls[idx], allUrls)}
+                                    />
+                                  </View>
+                                )
+                              })}
                             </View>
                           </View>
                         )}
