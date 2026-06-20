@@ -10,9 +10,10 @@ import { AcceptanceStatusMap, AcceptanceStepMap } from '@/types'
 interface PileCardProps {
   pile: PileInfo
   onClick?: (pile: PileInfo) => void
+  onViewTimeline?: (pile: PileInfo) => void
 }
 
-const PileCard: React.FC<PileCardProps> = ({ pile, onClick }) => {
+const PileCard: React.FC<PileCardProps> = ({ pile, onClick, onViewTimeline }) => {
   const steps: Array<'beforeDrilling' | 'reinforcementCage' | 'pouring'> = [
     'beforeDrilling',
     'reinforcementCage',
@@ -70,25 +71,38 @@ const PileCard: React.FC<PileCardProps> = ({ pile, onClick }) => {
 
       <View className={styles.cardFooter}>
         <Text className={styles.projectName}>{pile.projectName}</Text>
-        <View className={styles.stepIndicator}>
-          {steps.map((step, index) => (
-            <React.Fragment key={step}>
-              <View
-                className={classnames(styles.stepDot, {
-                  [styles.active]: getStepStatus(step) === 'active',
-                  [styles.done]: getStepStatus(step) === 'done'
-                })}
-              />
-              {index < steps.length - 1 && (
-                <View style={{ width: '24rpx', height: '2rpx', backgroundColor: '#e5e6eb' }} />
-              )}
-            </React.Fragment>
-          ))}
-          {pile.currentStep && (
-            <Text className={styles.stepText}>
-              {AcceptanceStepMap[pile.currentStep]}
+        <View style={{ display: 'flex', alignItems: 'center', gap: '20rpx' }}>
+          {onViewTimeline && (
+            <Text
+              className={styles.timelineBtn}
+              onClick={(e) => {
+                e.stopPropagation()
+                onViewTimeline(pile)
+              }}
+            >
+              流转记录
             </Text>
           )}
+          <View className={styles.stepIndicator}>
+            {steps.map((step, index) => (
+              <React.Fragment key={step}>
+                <View
+                  className={classnames(styles.stepDot, {
+                    [styles.active]: getStepStatus(step) === 'active',
+                    [styles.done]: getStepStatus(step) === 'done'
+                  })}
+                />
+                {index < steps.length - 1 && (
+                  <View style={{ width: '24rpx', height: '2rpx', backgroundColor: '#e5e6eb' }} />
+                )}
+              </React.Fragment>
+            ))}
+            {pile.currentStep && (
+              <Text className={styles.stepText}>
+                {AcceptanceStepMap[pile.currentStep]}
+              </Text>
+            )}
+          </View>
         </View>
       </View>
     </View>

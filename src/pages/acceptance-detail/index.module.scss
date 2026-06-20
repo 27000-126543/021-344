@@ -239,3 +239,198 @@
     font-weight: $font-weight-medium;
   }
 }
+
+.tabBar {
+  display: flex;
+  background-color: $color-bg-card;
+  margin: 0 $page-padding $spacing-md;
+  border-radius: $radius-md;
+  padding: 8rpx;
+  box-shadow: $shadow-card;
+
+  .tabItem {
+    flex: 1;
+    text-align: center;
+    padding: $spacing-sm 0;
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+    border-radius: $radius-sm;
+    transition: all $transition-base;
+
+    &.active {
+      background-color: $color-primary;
+      color: $color-text-white;
+      font-weight: $font-weight-medium;
+    }
+  }
+}
+
+.summarySection {
+  padding: 0 $page-padding;
+
+  .stepSummaryCard {
+    background-color: $color-bg-card;
+    border-radius: $radius-md;
+    margin-bottom: $spacing-md;
+    box-shadow: $shadow-card;
+    overflow: hidden;
+
+    .cardHeader {
+      padding: $spacing-md $spacing-lg;
+      background: linear-gradient(135deg, $color-primary-light 0%, $color-primary 100%);
+      color: $color-text-white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .stepTitle {
+        font-size: $font-size-md;
+        font-weight: $font-weight-bold;
+      }
+
+      .stepStatus {
+        font-size: $font-size-xs;
+        padding: 4rpx 16rpx;
+        background: rgba(255, 255, 255, 0.25);
+        border-radius: 20rpx;
+      }
+    }
+
+    .cardBody {
+      padding: $spacing-md $spacing-lg;
+    }
+
+    .summaryBlock {
+      margin-bottom: $spacing-md;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      .blockTitle {
+        font-size: $font-size-sm;
+        font-weight: $font-weight-semibold;
+        color: $color-text-primary;
+        margin-bottom: $spacing-sm;
+        display: flex;
+        align-items: center;
+
+        &::before {
+          content: '';
+          width: 6rpx;
+          height: 24rpx;
+          background-color: $color-primary;
+          border-radius: 3rpx;
+          margin-right: $spacing-xs;
+        }
+      }
+    }
+
+    .checkItemsList {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-xs;
+
+      .checkItem {
+        display: flex;
+        align-items: flex-start;
+        font-size: $font-size-sm;
+        color: $color-text-secondary;
+        line-height: 1.5;
+
+        .checkIcon {
+          color: $color-success;
+          margin-right: $spacing-xs;
+          font-size: $font-size-md;
+          flex-shrink: 0;
+        }
+
+        .uncheckIcon {
+          color: $color-text-tertiary;
+          margin-right: $spacing-xs;
+          font-size: $font-size-md;
+          flex-shrink: 0;
+        }
+      }
+    }
+
+    .conclusionText {
+      font-size: $font-size-sm;
+      color: $color-text-secondary;
+      line-height: 1.6;
+      padding: $spacing-sm $spacing-md;
+      background-color: $color-bg-page;
+      border-radius: $radius-sm;
+    }
+
+    .photoGrid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $spacing-xs;
+
+      .photoItem {
+        width: 140rpx;
+        height: 140rpx;
+        border-radius: $radius-sm;
+        overflow: hidden;
+
+        Image {
+          width: 100%;
+          height: 100%;
+        }
+      }
+
+      .photoCount {
+        width: 140rpx;
+        height: 140rpx;
+        background-color: $color-bg-page;
+        border-radius: $radius-sm;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: $font-size-sm;
+        color: $color-text-tertiary;
+      }
+    }
+
+    .rectItem {
+      padding: $spacing-sm $spacing-md;
+      background-color: $color-warning-bg;
+      border-radius: $radius-sm;
+      margin-bottom: $spacing-xs;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      .rectType {
+        font-size: $font-size-sm;
+        font-weight: $font-weight-medium;
+        color: $color-warning;
+        margin-bottom: 4rpx;
+      }
+
+      .rectDesc {
+        font-size: $font-size-xs;
+        color: $color-text-secondary;
+        line-height: 1.5;
+      }
+    }
+
+    .emptyState {
+      text-align: center;
+      padding: $spacing-lg 0;
+      font-size: $font-size-sm;
+      color: $color-text-tertiary;
+    }
+
+    .inspectorRow {
+      display: flex;
+      justify-content: space-between;
+      font-size: $font-size-xs;
+      color: $color-text-tertiary;
+      padding-top: $spacing-sm;
+      border-top: 1rpx solid $color-divider;
+    }
+  }
+}

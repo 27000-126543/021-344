@@ -8,9 +8,11 @@ import PhotoUploader from '@/components/PhotoUploader'
 import { useAcceptanceStore } from '@/store'
 import type { RectificationItem, RectificationStatus, PhotoItem } from '@/types'
 import { RectificationStatusMap, ProblemTypeMap, AcceptanceStepMap } from '@/types'
-import { formatTime } from '@/utils'
+import { formatTime, resolvePhotoUrl } from '@/utils'
 
-const filterOptions: Array<{ key: RectificationStatus | 'all'; label: string }> = [
+type TimeFilterKey = 'all' | 'overdue' | 'expiring' | 'rechecking'
+
+const statusFilterOptions: Array<{ key: RectificationStatus | 'all'; label: string }> = [
   { key: 'all', label: '全部' },
   { key: 'pending', label: '待整改' },
   { key: 'processing', label: '整改中' },
@@ -18,10 +20,19 @@ const filterOptions: Array<{ key: RectificationStatus | 'all'; label: string }> 
   { key: 'closed', label: '已关闭' }
 ]
 
+const timeFilterOptions: Array<{ key: TimeFilterKey; label: string; type: string }> = [
+  { key: 'all', label: '全部', type: 'normal' },
+  { key: 'overdue', label: '已超期', type: 'danger' },
+  { key: 'expiring', label: '即将到期', type: 'warning' },
+  { key: 'rechecking', label: '待复查', type: 'primary' }
+]
+
 const RectificationPage: React.FC = () => {
   const { rectifications, submitRecheck, reviewRectification } = useAcceptanceStore()
 
-  const [activeFilter, setActiveFilter] = useState<RectificationStatus | 'all'>('all')
+  const [activeStatusFilter, setActiveStatusFilter] = useState<RectificationStatus | 'all'>('all')
+  const [activeTimeFilter, setActiveTimeFilter] = useState<TimeFilterKey>('all')
+  const [activeProject, setActiveProject] = useState<string>('all')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
@@ -40,20 +51,71 @@ const RectificationPage: React.FC = () => {
     }, 500)
   })
 
+  const projectList = useMemo(() => {
+    const projects = new Set<string>()
+    rectifications.forEach(r => projects.add(r.projectName))
+    return Array.from(projects)
+  }, [rectifications])
+
+  const now = Date.now()
+  const ONE_DAY = 24 * 3600 * 1000
+
+  const isOverdue = (item: RectificationItem) => {
+    if (item.status === 'closed') return false
+    return new Date(item.deadline).getTime() < now
+  }
+
+  const isExpiring = (item: RectificationItem) => {
+    if (item.status === 'closed') return false
+    const deadlineTime = new Date(item.deadline).getTime()
+    return deadlineTime >= now && deadlineTime - now <= ONE_DAY
+  }
+
+  const timeStats = useMemo(() => {
+    let overdue = 0
+    let expiring = 0
+    let rechecking = 0
+    rectifications.forEach(r => {
+      if (r.status === 'closed') return
+      if (r.status === 'rechecking') rechecking++
+      if (isOverdue(r)) overdue++
+      else if (isExpiring(r)) expiring++
+    })
+    return { overdue, expiring, rechecking }
+  }, [rectifications])
+
   const filteredList = useMemo(() => {
-    if (activeFilter === 'all') return rectifications
-    return rectifications.filter(r => r.status === activeFilter)
-  }, [rectifications, activeFilter])
+    let result = rectifications
+
+    if (activeProject !== 'all') {
+      result = result.filter(r => r.projectName === activeProject)
+    }
+
+    if (activeStatusFilter !== 'all') {
+      result = result.filter(r => r.status === activeStatusFilter)
+    }
+
+    if (activeTimeFilter === 'overdue') {
+      result = result.filter(r => isOverdue(r))
+    } else if (activeTimeFilter === 'expiring') {
+      result = result.filter(r => isExpiring(r))
+    } else if (activeTimeFilter === 'rechecking') {
+      result = result.filter(r => r.status === 'rechecking')
+    }
+
+    return result
+  }, [rectifications, activeProject, activeStatusFilter, activeTimeFilter])
 
   const stats = useMemo(() => {
+    const list = filteredList
     return {
-      total: rectifications.length,
-      pending: rectifications.filter(r => r.status === 'pending').length,
-      processing: rectifications.filter(r => r.status === 'processing').length,
-      rechecking: rectifications.filter(r => r.status === 'rechecking').length,
-      closed: rectifications.filter(r => r.status === 'closed').length
+      total: list.length,
+      pending: list.filter(r => r.status === 'pending').length,
+      processing: list.filter(r => r.status === 'processing').length,
+      rechecking: list.filter(r => r.status === 'rechecking').length,
+      closed: list.filter(r => r.status === 'closed').length
     }
-  }, [rectifications])
+  }, [filteredList])
 
   const getRecheckInput = (id: string) => {
     if (!recheckInputs[id]) {
@@ -145,19 +207,6 @@ const RectificationPage: React.FC = () => {
     })
   }
 
-  const isDeadlineNear = (deadline: string) => {
-    const now = Date.now()
-    const dl = new Date(deadline).getTime()
-    return dl - now < 24 * 3600 * 1000 && dl > now
-  }
-
-  const isOverdue = (deadline: string, status: RectificationStatus) => {
-    if (status === 'closed') return false
-    const now = Date.now()
-    const dl = new Date(deadline).getTime()
-    return dl < now
-  }
-
   const getTimelineData = (item: RectificationItem) => {
     const list: Array<{ title: string; desc: string; time: string; status: 'done' | 'current' | 'pending' }> = [
       {
@@ -220,41 +269,101 @@ const RectificationPage: React.FC = () => {
         <Text className={styles.pageTitle}>整改跟踪</Text>
         <Text className={styles.pageSubtitle}>问题上报 · 整改复查 · 闭环管理</Text>
 
-        <View className={styles.statsRow}>
-          <View className={styles.statItem}>
-            <Text className={styles.statValue}>{stats.total}</Text>
-            <View className={styles.statLabel}>全部</View>
+        <View className={styles.reminderRow}>
+          <View
+            className={classnames(styles.reminderCard, styles.danger)}
+            onClick={() => {
+              setActiveTimeFilter('overdue')
+              setActiveStatusFilter('all')
+            }}
+          >
+            <Text className={styles.reminderValue}>{timeStats.overdue}</Text>
+            <Text className={styles.reminderLabel}>已超期</Text>
           </View>
-          <View className={styles.statItem}>
-            <Text className={styles.statValue}>{stats.pending + stats.processing}</Text>
-            <View className={styles.statLabel}>整改中</View>
+          <View
+            className={classnames(styles.reminderCard, styles.warning)}
+            onClick={() => {
+              setActiveTimeFilter('expiring')
+              setActiveStatusFilter('all')
+            }}
+          >
+            <Text className={styles.reminderValue}>{timeStats.expiring}</Text>
+            <Text className={styles.reminderLabel}>即将到期</Text>
           </View>
-          <View className={styles.statItem}>
-            <Text className={styles.statValue}>{stats.rechecking}</Text>
-            <View className={styles.statLabel}>待复查</View>
-          </View>
-          <View className={styles.statItem}>
-            <Text className={styles.statValue}>{stats.closed}</Text>
-            <View className={styles.statLabel}>已关闭</View>
+          <View
+            className={classnames(styles.reminderCard, styles.primary)}
+            onClick={() => {
+              setActiveTimeFilter('rechecking')
+              setActiveStatusFilter('all')
+            }}
+          >
+            <Text className={styles.reminderValue}>{timeStats.rechecking}</Text>
+            <Text className={styles.reminderLabel}>待复查</Text>
           </View>
         </View>
       </View>
 
-      <View className={styles.filterTabs}>
-        {filterOptions.map(option => (
-          <View
-            key={option.key}
-            className={classnames(styles.filterTab, {
-              [styles.active]: activeFilter === option.key
-            })}
-            onClick={() => setActiveFilter(option.key)}
-          >
-            {option.label}
-          </View>
-        ))}
+      <View className={styles.filterSection}>
+        <View className={styles.projectFilter}>
+          <Text className={styles.filterLabel}>项目：</Text>
+          <ScrollView scrollX className={styles.projectScroll}>
+            <View
+              className={classnames(styles.projectTag, { [styles.active]: activeProject === 'all' })}
+              onClick={() => setActiveProject('all')}
+            >
+              全部
+            </View>
+            {projectList.map(project => (
+              <View
+                key={project}
+                className={classnames(styles.projectTag, { [styles.active]: activeProject === project })}
+                onClick={() => setActiveProject(project)}
+              >
+                {project}
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+
+        <View className={styles.filterTabs}>
+          {statusFilterOptions.map(option => (
+            <View
+              key={option.key}
+              className={classnames(styles.filterTab, {
+                [styles.active]: activeStatusFilter === option.key && activeTimeFilter === 'all'
+              })}
+              onClick={() => {
+                setActiveStatusFilter(option.key)
+                setActiveTimeFilter('all')
+              }}
+            >
+              {option.label}
+            </View>
+          ))}
+        </View>
       </View>
 
-      <ScrollView scrollY className={styles.listSection} style={{ height: 'calc(100vh - 380rpx)' }}>
+      <View className={styles.resultInfo}>
+        <Text className={styles.resultText}>
+          共 {stats.total} 条记录
+          {activeProject !== 'all' && ` · ${activeProject}`}
+          {activeTimeFilter !== 'all' && ` · ${timeFilterOptions.find(f => f.key === activeTimeFilter)?.label}`}
+        </Text>
+        {(activeProject !== 'all' || activeTimeFilter !== 'all' || activeStatusFilter !== 'all') && (
+          <Text
+            className={styles.clearFilter}
+            onClick={() => {
+              setActiveProject('all')
+              setActiveTimeFilter('all')
+              setActiveStatusFilter('all')
+            }}
+          >
+            清除筛选
+          </Text>
+        )}
+      </View>
+
+      <ScrollView scrollY className={styles.listSection} style={{ height: 'calc(100vh - 520rpx)' }}>
         {filteredList.length > 0 ? (
           filteredList.map(item => {
             const isExpanded = expandedId === item.id
@@ -295,12 +404,12 @@ const RectificationPage: React.FC = () => {
                       <Text className={styles.label}>整改期限：</Text>
                       <Text
                         className={classnames({
-                          [styles.deadlineWarning]: isOverdue(item.deadline, item.status) || isDeadlineNear(item.deadline)
+                          [styles.deadlineWarning]: isOverdue(item) || isExpiring(item)
                         })}
                       >
                         {formatTime(item.deadline, 'MM-DD HH:mm')}
-                        {isOverdue(item.deadline, item.status) && '（已逾期）'}
-                        {!isOverdue(item.deadline, item.status) && isDeadlineNear(item.deadline) && '（即将到期）'}
+                        {isOverdue(item) && '（已逾期）'}
+                        {!isOverdue(item) && isExpiring(item) && '（即将到期）'}
                       </Text>
                     </View>
                   </View>

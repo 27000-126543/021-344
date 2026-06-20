@@ -4,6 +4,7 @@ import Taro, { useDidShow, usePullDownRefresh } from '@tarojs/taro'
 import classnames from 'classnames'
 import styles from './index.module.scss'
 import PileCard from '@/components/PileCard'
+import PileTimeline from '@/components/PileTimeline'
 import { useAcceptanceStore } from '@/store'
 import type { PileInfo, AcceptanceStatus } from '@/types'
 
@@ -15,10 +16,28 @@ const filterOptions: Array<{ key: AcceptanceStatus | 'all'; label: string }> = [
 ]
 
 const ProjectListPage: React.FC = () => {
-  const { piles, refreshPiles } = useAcceptanceStore()
+  const { piles, acceptanceRecords, rectifications, refreshPiles, getRecordByPileId, getRectificationsByPileId } = useAcceptanceStore()
 
   const [searchText, setSearchText] = useState('')
   const [activeFilter, setActiveFilter] = useState<AcceptanceStatus | 'all'>('all')
+
+  const [timelineVisible, setTimelineVisible] = useState(false)
+  const [timelinePileId, setTimelinePileId] = useState<string | null>(null)
+
+  const timelinePile = useMemo(() => {
+    if (!timelinePileId) return null
+    return piles.find(p => p.id === timelinePileId) || null
+  }, [timelinePileId, piles])
+
+  const timelineRecord = useMemo(() => {
+    if (!timelinePileId) return null
+    return getRecordByPileId(timelinePileId) || null
+  }, [timelinePileId, getRecordByPileId, acceptanceRecords])
+
+  const timelineRectifications = useMemo(() => {
+    if (!timelinePileId) return []
+    return getRectificationsByPileId(timelinePileId)
+  }, [timelinePileId, getRectificationsByPileId, rectifications])
 
   useDidShow(() => {
     console.log('[ProjectList] 页面显示，当前桩号数:', piles.length)
@@ -115,7 +134,14 @@ const ProjectListPage: React.FC = () => {
 
         {filteredPiles.length > 0 ? (
           filteredPiles.map(pile => (
-            <PileCard key={pile.id} pile={pile} />
+            <PileCard
+              key={pile.id}
+              pile={pile}
+              onViewTimeline={(p) => {
+                setTimelinePileId(p.id)
+                setTimelineVisible(true)
+              }}
+            />
           ))
         ) : (
           <View className={styles.emptyState}>
@@ -124,6 +150,14 @@ const ProjectListPage: React.FC = () => {
           </View>
         )}
       </ScrollView>
+
+      <PileTimeline
+        visible={timelineVisible}
+        pile={timelinePile}
+        record={timelineRecord}
+        rectifications={timelineRectifications}
+        onClose={() => setTimelineVisible(false)}
+      />
     </View>
   )
 }

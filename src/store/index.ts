@@ -12,7 +12,7 @@ import type {
   RectificationStatus
 } from '@/types'
 import { mockPiles, mockAcceptanceRecords, mockRectifications, checkItemTemplates } from '@/data/mock'
-import { generateId } from '@/utils'
+import { generateId, persistPhoto, persistPhotoBatch } from '@/utils'
 
 const STORAGE_KEY = 'pile_acceptance_store_v1'
 
@@ -140,16 +140,26 @@ export const useAcceptanceStore = create<AcceptanceStore>((set, get) => ({
     }))
   },
 
-  submitStepResult: (pileId, step, checkItems, photos, conclusion) => {
-    const { piles, acceptanceRecords } = get()
+  submitStepResult: async (pileId, step, checkItems, photos, conclusion) => {
+    const { piles, acceptanceRecords, rectifications } = get()
     const pile = piles.find(p => p.id === pileId)
     if (!pile) return
+
+    console.log('[Store] 开始持久化验收照片...')
+    const persistResults = await persistPhotoBatch(
+      photos.map(p => ({ id: p.id, url: p.url, pileId, step }))
+    )
+    const persistedPhotos = photos.map(photo => {
+      const result = persistResults.find(r => r.id === photo.id)
+      return result ? { ...photo, url: result.savedUrl } : photo
+    })
+    console.log('[Store] 验收照片持久化完成，共', persistedPhotos.length, '张')
 
     const stepResult: StepResult = {
       step,
       checked: true,
       checkItems: [...checkItems],
-      photos: [...photos],
+      photos: persistedPhotos,
       conclusion,
       inspector: '张监理',
       checkTime: new Date().toISOString()
@@ -200,7 +210,7 @@ export const useAcceptanceStore = create<AcceptanceStore>((set, get) => ({
     }
 
     set({ piles: updatedPiles, acceptanceRecords: updatedRecords })
-    saveToStorage({ piles: updatedPiles, acceptanceRecords: updatedRecords, rectifications: get().rectifications, _persistedAt: '' })
+    saveToStorage({ piles: updatedPiles, acceptanceRecords: updatedRecords, rectifications, _persistedAt: '' })
     console.log('[Store] 步骤验收完成:', { pileId, step, isLastStep })
   },
 
@@ -241,8 +251,19 @@ export const useAcceptanceStore = create<AcceptanceStore>((set, get) => ({
     return newRect
   },
 
-  submitRecheck: (rectId, recheckDesc, recheckPhotos) => {
+  submitRecheck: async (rectId, recheckDesc, recheckPhotos) => {
     const { rectifications, piles, acceptanceRecords } = get()
+    const rect = rectifications.find(r => r.id === rectId)
+
+    console.log('[Store] 开始持久化复查照片...')
+    const persistResults = await persistPhotoBatch(
+      recheckPhotos.map(p => ({ id: p.id, url: p.url, pileId: rect?.pileId || '', step: rect?.step || 'pouring' }))
+    )
+    const persistedPhotos = recheckPhotos.map(photo => {
+      const result = persistResults.find(r => r.id === photo.id)
+      return result ? { ...photo, url: result.savedUrl } : photo
+    })
+    console.log('[Store] 复查照片持久化完成，共', persistedPhotos.length, '张')
 
     const updated = rectifications.map(r => {
       if (r.id !== rectId) return r
@@ -251,7 +272,7 @@ export const useAcceptanceStore = create<AcceptanceStore>((set, get) => ({
         status: 'rechecking' as RectificationStatus,
         recheckDesc,
         recheckTime: new Date().toISOString(),
-        recheckPhotos: [...recheckPhotos]
+        recheckPhotos: persistedPhotos
       }
     })
 

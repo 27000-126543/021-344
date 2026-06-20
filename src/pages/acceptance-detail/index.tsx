@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { View, Text, Textarea, ScrollView } from '@tarojs/components'
+import { View, Text, Textarea, ScrollView, Image } from '@tarojs/components'
 import Taro, { useRouter, useDidShow } from '@tarojs/taro'
 import classnames from 'classnames'
 import styles from './index.module.scss'
@@ -13,6 +13,7 @@ import type {
   ProblemType
 } from '@/types'
 import { AcceptanceStatusMap, AcceptanceStepMap, ProblemTypeMap } from '@/types'
+import { resolvePhotoUrl, formatTime } from '@/utils'
 
 const steps: Array<{ key: AcceptanceStep; label: string; photoCategory: string }> = [
   { key: 'beforeDrilling', label: '成孔前复核', photoCategory: '孔口标识' },
@@ -33,11 +34,13 @@ const AcceptanceDetailPage: React.FC = () => {
   const router = useRouter()
   const pileId = router.params.id || 'pile001'
 
-  const { piles, acceptanceRecords, getPileById, getRecordByPileId, initCheckItems, submitStepResult, createRectification } = useAcceptanceStore()
+  const { piles, acceptanceRecords, rectifications, getPileById, getRecordByPileId, getRectificationsByPileId, initCheckItems, submitStepResult, createRectification } = useAcceptanceStore()
 
   const pile = useMemo(() => getPileById(pileId), [getPileById, pileId, piles])
   const record = useMemo(() => getRecordByPileId(pileId), [getRecordByPileId, pileId, acceptanceRecords])
+  const pileRectifications = useMemo(() => getRectificationsByPileId(pileId), [getRectificationsByPileId, pileId, rectifications])
 
+  const [activeTab, setActiveTab] = useState<'acceptance' | 'summary'>('acceptance')
   const [expandedStep, setExpandedStep] = useState<AcceptanceStep | null>(null)
   const [initialized, setInitialized] = useState(false)
 
@@ -310,42 +313,171 @@ const AcceptanceDetailPage: React.FC = () => {
           <View className={styles.projectName}>{pile.projectName}</View>
         </View>
 
-        <View className={styles.stepsSection}>
-          <Text className={styles.sectionTitle}>验收步骤</Text>
-
-          {steps.map((step, index) => {
-            const isCompleted = isStepCompleted(step.key)
-            const result = record?.steps[step.key] || null
-
-            return (
-              <StepPanel
-                key={step.key}
-                stepNumber={index + 1}
-                stepKey={step.key}
-                title={step.label}
-                result={result}
-                checkItems={stepCheckItems[step.key]}
-                photos={stepPhotos[step.key]}
-                conclusion={stepConclusions[step.key]}
-                pileId={pileId}
-                photoCategory={step.photoCategory}
-                expanded={expandedStep === step.key}
-                readonly={isCompleted}
-                onToggle={() =>
-                  setExpandedStep(expandedStep === step.key ? null : step.key)
-                }
-                onCheckChange={(items) => handleCheckItemsChange(step.key, items)}
-                onPhotosChange={(photos) => handlePhotosChange(step.key, photos)}
-                onConclusionChange={(text) => handleConclusionChange(step.key, text)}
-              />
-            )
-          })}
+        <View className={styles.tabBar}>
+          <View
+            className={classnames(styles.tabItem, { [styles.active]: activeTab === 'acceptance' })}
+            onClick={() => setActiveTab('acceptance')}
+          >
+            验收流程
+          </View>
+          <View
+            className={classnames(styles.tabItem, { [styles.active]: activeTab === 'summary' })}
+            onClick={() => setActiveTab('summary')}
+          >
+            资料汇总
+          </View>
         </View>
+
+        {activeTab === 'acceptance' && (
+          <View className={styles.stepsSection}>
+            <Text className={styles.sectionTitle}>验收步骤</Text>
+
+            {steps.map((step, index) => {
+              const isCompleted = isStepCompleted(step.key)
+              const result = record?.steps[step.key] || null
+
+              return (
+                <StepPanel
+                  key={step.key}
+                  stepNumber={index + 1}
+                  stepKey={step.key}
+                  title={step.label}
+                  result={result}
+                  checkItems={stepCheckItems[step.key]}
+                  photos={stepPhotos[step.key]}
+                  conclusion={stepConclusions[step.key]}
+                  pileId={pileId}
+                  photoCategory={step.photoCategory}
+                  expanded={expandedStep === step.key}
+                  readonly={isCompleted}
+                  onToggle={() =>
+                    setExpandedStep(expandedStep === step.key ? null : step.key)
+                  }
+                  onCheckChange={(items) => handleCheckItemsChange(step.key, items)}
+                  onPhotosChange={(photos) => handlePhotosChange(step.key, photos)}
+                  onConclusionChange={(text) => handleConclusionChange(step.key, text)}
+                />
+              )
+            })}
+          </View>
+        )}
+
+        {activeTab === 'summary' && (
+          <View className={styles.summarySection}>
+            {steps.map((step, index) => {
+              const result = record?.steps[step.key] || null
+              const isCompleted = result?.checked ?? false
+              const stepRects = pileRectifications.filter(r => r.step === step.key)
+              const displayPhotos = result?.photos || []
+              const showPhotos = displayPhotos.slice(0, 8)
+
+              return (
+                <View key={step.key} className={styles.stepSummaryCard}>
+                  <View className={styles.cardHeader}>
+                    <Text className={styles.stepTitle}>
+                      第{index + 1}步 · {step.label}
+                    </Text>
+                    <Text className={styles.stepStatus}>
+                      {isCompleted ? '已完成' : '待验收'}
+                    </Text>
+                  </View>
+
+                  <View className={styles.cardBody}>
+                    {!isCompleted ? (
+                      <View className={styles.emptyState}>本环节尚未完成验收</View>
+                    ) : (
+                      <>
+                        <View className={styles.summaryBlock}>
+                          <Text className={styles.blockTitle}>检查项</Text>
+                          <View className={styles.checkItemsList}>
+                            {result?.checkItems?.map(item => (
+                              <View key={item.id} className={styles.checkItem}>
+                                <Text className={item.checked ? styles.checkIcon : styles.uncheckIcon}>
+                                  {item.checked ? '✓' : '○'}
+                                </Text>
+                                <Text>{item.label}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+
+                        <View className={styles.summaryBlock}>
+                          <Text className={styles.blockTitle}>检查结论</Text>
+                          <View className={styles.conclusionText}>
+                            {result?.conclusion || '无'}
+                          </View>
+                        </View>
+
+                        <View className={styles.summaryBlock}>
+                          <Text className={styles.blockTitle}>
+                            现场照片 ({displayPhotos.length}张)
+                          </Text>
+                          {displayPhotos.length === 0 ? (
+                            <View className={styles.emptyState}>暂无照片</View>
+                          ) : (
+                            <View className={styles.photoGrid}>
+                              {showPhotos.map(photo => (
+                                <View
+                                  key={photo.id}
+                                  className={styles.photoItem}
+                                  onClick={() => {
+                                    Taro.previewImage({
+                                      current: resolvePhotoUrl(photo.url),
+                                      urls: displayPhotos.map(p => resolvePhotoUrl(p.url))
+                                    })
+                                  }}
+                                >
+                                  <Image
+                                    src={resolvePhotoUrl(photo.url)}
+                                    mode='aspectFill'
+                                    style={{ width: '100%', height: '100%' }}
+                                  />
+                                </View>
+                              ))}
+                              {displayPhotos.length > 8 && (
+                                <View className={styles.photoCount}>
+                                  +{displayPhotos.length - 8}
+                                </View>
+                              )}
+                            </View>
+                          )}
+                        </View>
+
+                        {stepRects.length > 0 && (
+                          <View className={styles.summaryBlock}>
+                            <Text className={styles.blockTitle}>
+                              整改记录 ({stepRects.length}条)
+                            </Text>
+                            {stepRects.map(rect => (
+                              <View key={rect.id} className={styles.rectItem}>
+                                <Text className={styles.rectType}>
+                                  {ProblemTypeMap[rect.problemType as ProblemType] || rect.problemType}
+                                </Text>
+                                <Text className={styles.rectDesc}>
+                                  {rect.problemDesc}
+                                </Text>
+                              </View>
+                            ))}
+                          </View>
+                        )}
+
+                        <View className={styles.inspectorRow}>
+                          <Text>监理：{result?.inspector || '-'}</Text>
+                          <Text>{result?.checkTime ? formatTime(result.checkTime) : '-'}</Text>
+                        </View>
+                      </>
+                    )}
+                  </View>
+                </View>
+              )
+            })}
+          </View>
+        )}
 
         <View style={{ height: '200rpx' }} />
       </ScrollView>
 
-      {expandedStep && !isStepCompleted(expandedStep) && canSubmitCurrentStep() && (
+      {activeTab === 'acceptance' && expandedStep && !isStepCompleted(expandedStep) && canSubmitCurrentStep() && (
         <View className={styles.bottomBar}>
           <View
             className={classnames(styles.btn, styles.btnSecondary)}

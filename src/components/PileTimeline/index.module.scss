@@ -1,0 +1,207 @@
+@use '@/styles/variables.scss' as *;
+
+.modalMask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modalContent {
+  width: 100%;
+  max-height: 80vh;
+  background-color: $color-bg-card;
+  border-radius: $radius-lg $radius-lg 0 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-lg $page-spacing;
+  border-bottom: 1rpx solid $color-divider;
+
+  .modalTitle {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    color: $color-text-primary;
+  }
+
+  .closeBtn {
+    width: 56rpx;
+    height: 56rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: $font-size-xxl;
+    color: $color-text-tertiary;
+
+    &:active {
+      opacity: 0.7;
+    }
+  }
+}
+
+.pileInfo {
+  padding: $spacing-md $page-spacing;
+  background-color: $color-bg-page;
+
+  .pileNo {
+    font-size: $font-size-md;
+    font-weight: $font-weight-bold;
+    color: $color-text-primary;
+    display: block;
+  }
+
+  .pileProject {
+    font-size: $font-size-sm;
+    color: $color-text-tertiary;
+    margin-top: 4rpx;
+    display: block;
+  }
+}
+
+.timelineScroll {
+  flex: 1;
+  padding: $spacing-md $page-spacing;
+  padding-bottom: calc(#{$spacing-lg} + env(safe-area-inset-bottom));
+}
+
+.timeline {
+  padding: $spacing-sm 0;
+}
+
+.timelineItem {
+  display: flex;
+  position: relative;
+
+  &:last-child {
+    .timelineLine {
+      display: none;
+    }
+  }
+}
+
+.timelineLeft {
+  width: 48rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.timelineDot {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: $radius-round;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: $color-primary-light;
+  flex-shrink: 0;
+  z-index: 1;
+
+  .dotIcon {
+    font-size: 24rpx;
+  }
+
+  &.create {
+    background-color: $color-info-bg;
+    .dotIcon { color: $color-info; }
+  }
+
+  &.step {
+    background-color: $color-success-bg;
+    .dotIcon { color: $color-success; font-size: 26rpx; font-weight: bold; }
+  }
+
+  &.rect_create {
+    background-color: $color-warning-bg;
+    .dotIcon { color: $color-warning; }
+  }
+
+  &.rect_recheck {
+    background-color: $color-primary-bg;
+    .dotIcon { color: $color-primary; }
+  }
+
+  &.rect_approve {
+    background-color: $color-success-bg;
+    .dotIcon { color: $color-success; }
+  }
+
+  &.rect_reject {
+    background-color: $color-error-bg;
+    .dotIcon { color: $color-error; }
+  }
+
+  &.complete {
+    background-color: $color-primary;
+    .dotIcon { color: $color-text-white; }
+  }
+}
+
+.timelineLine {
+  width: 2rpx;
+  flex: 1;
+  min-height: 24rpx;
+  background-color: $color-divider;
+  margin: 8rpx 0;
+}
+
+.timelineContent {
+  flex: 1;
+  margin-left: $spacing-md;
+  padding-bottom: $spacing-lg;
+}
+
+.nodeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-xs;
+}
+
+.nodeTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  line-height: 1.4;
+}
+
+.nodeStatus {
+  font-size: $font-size-xs;
+  color: $color-primary;
+  background-color: $color-primary-bg;
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+  flex-shrink: 0;
+  margin-left: $spacing-sm;
+}
+
+.nodeDesc {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1.6;
+  margin-bottom: $spacing-xs;
+}
+
+.nodeTime {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.emptyState {
+  text-align: center;
+  padding: $spacing-xxl 0;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}

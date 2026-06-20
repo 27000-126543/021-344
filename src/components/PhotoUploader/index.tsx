@@ -1,9 +1,9 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { View, Text, Image } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import styles from './index.module.scss'
 import type { PhotoItem } from '@/types'
-import { generateId, formatTime } from '@/utils'
+import { generateId, formatTime, resolvePhotoUrl } from '@/utils'
 
 interface PhotoUploaderProps {
   photos: PhotoItem[]
@@ -68,10 +68,15 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
     })
   }
 
-  const handlePreview = (url: string) => {
+  const resolvedUrls = useMemo(
+    () => photos.map(p => resolvePhotoUrl(p.url)),
+    [photos]
+  )
+
+  const handlePreview = (index: number) => {
     Taro.previewImage({
-      current: url,
-      urls: photos.map(p => p.url)
+      current: resolvedUrls[index],
+      urls: resolvedUrls
     })
   }
 

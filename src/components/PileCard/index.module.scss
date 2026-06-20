@@ -87,6 +87,18 @@
   margin-left: $spacing-xs;
 }
 
+.timelineBtn {
+  font-size: $font-size-xs;
+  color: $color-primary;
+  padding: 6rpx 16rpx;
+  background-color: $color-primary-bg;
+  border-radius: $radius-xs;
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
 .rectificationBadge {
   display: inline-flex;
   align-items: center;
